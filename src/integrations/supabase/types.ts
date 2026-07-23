@@ -48,7 +48,22 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appts_doctor_profile_fk"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appts_patient_profile_fk"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -169,6 +184,13 @@ export type Database = {
             referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "requests_staff_profile_fk"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shifts: {
@@ -202,7 +224,15 @@ export type Database = {
           staff_id?: string
           type?: Database["public"]["Enums"]["shift_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shifts_staff_profile_fk"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       specialties: {
         Row: {
@@ -241,7 +271,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_profile_fk"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
