@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock } from "lucide-react";
+import { LogOut, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock, Building2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
