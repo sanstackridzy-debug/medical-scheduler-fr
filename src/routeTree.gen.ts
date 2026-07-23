@@ -9,38 +9,183 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SeedRouteImport } from './routes/seed'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
+import { Route as AuthenticatedRosterRouteImport } from './routes/_authenticated/roster'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedBookRouteImport } from './routes/_authenticated/book'
+import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 
+const SeedRoute = SeedRouteImport.update({
+  id: '/seed',
+  path: '/seed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedStaffRoute = AuthenticatedStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRosterRoute = AuthenticatedRosterRouteImport.update({
+  id: '/roster',
+  path: '/roster',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBookRoute = AuthenticatedBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppointmentsRoute =
+  AuthenticatedAppointmentsRouteImport.update({
+    id: '/appointments',
+    path: '/appointments',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/seed': typeof SeedRoute
+  '/appointments': typeof AuthenticatedAppointmentsRoute
+  '/book': typeof AuthenticatedBookRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/requests': typeof AuthenticatedRequestsRoute
+  '/roster': typeof AuthenticatedRosterRoute
+  '/staff': typeof AuthenticatedStaffRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/seed': typeof SeedRoute
+  '/appointments': typeof AuthenticatedAppointmentsRoute
+  '/book': typeof AuthenticatedBookRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/requests': typeof AuthenticatedRequestsRoute
+  '/roster': typeof AuthenticatedRosterRoute
+  '/staff': typeof AuthenticatedStaffRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/seed': typeof SeedRoute
+  '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
+  '/_authenticated/book': typeof AuthenticatedBookRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/requests': typeof AuthenticatedRequestsRoute
+  '/_authenticated/roster': typeof AuthenticatedRosterRoute
+  '/_authenticated/staff': typeof AuthenticatedStaffRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/seed'
+    | '/appointments'
+    | '/book'
+    | '/dashboard'
+    | '/notifications'
+    | '/requests'
+    | '/roster'
+    | '/staff'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/seed'
+    | '/appointments'
+    | '/book'
+    | '/dashboard'
+    | '/notifications'
+    | '/requests'
+    | '/roster'
+    | '/staff'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/seed'
+    | '/_authenticated/appointments'
+    | '/_authenticated/book'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/notifications'
+    | '/_authenticated/requests'
+    | '/_authenticated/roster'
+    | '/_authenticated/staff'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  SeedRoute: typeof SeedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/seed': {
+      id: '/seed'
+      path: '/seed'
+      fullPath: '/seed'
+      preLoaderRoute: typeof SeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +193,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/staff': {
+      id: '/_authenticated/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof AuthenticatedStaffRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roster': {
+      id: '/_authenticated/roster'
+      path: '/roster'
+      fullPath: '/roster'
+      preLoaderRoute: typeof AuthenticatedRosterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/book': {
+      id: '/_authenticated/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof AuthenticatedBookRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/appointments': {
+      id: '/_authenticated/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AuthenticatedAppointmentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppointmentsRoute: typeof AuthenticatedAppointmentsRoute
+  AuthenticatedBookRoute: typeof AuthenticatedBookRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
+  AuthenticatedRosterRoute: typeof AuthenticatedRosterRoute
+  AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppointmentsRoute: AuthenticatedAppointmentsRoute,
+  AuthenticatedBookRoute: AuthenticatedBookRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
+  AuthenticatedRosterRoute: AuthenticatedRosterRoute,
+  AuthenticatedStaffRoute: AuthenticatedStaffRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  SeedRoute: SeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
