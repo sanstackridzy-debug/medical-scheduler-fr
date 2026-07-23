@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles DROP CONSTRAINT profiles_specialty_id_fkey;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_specialty_id_fkey FOREIGN KEY (specialty_id) REFERENCES public.specialties(id) ON DELETE SET NULL;
