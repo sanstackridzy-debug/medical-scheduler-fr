@@ -61,7 +61,7 @@ function RosterPage() {
       .gte("shift_date", format(monthStart, "yyyy-MM-dd"))
       .lte("shift_date", format(monthEnd, "yyyy-MM-dd"))
       .order("shift_date");
-    setShifts(data ?? []);
+    setShifts((data ?? []) as unknown as Shift[]);
   }
 
   async function loadStaff() {

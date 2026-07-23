@@ -19,7 +19,6 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBookRouteImport } from './routes/_authenticated/book'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
-import { Route as ApiPublicSeedRouteImport } from './routes/api/public/seed'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -72,11 +71,6 @@ const AuthenticatedAppointmentsRoute =
     path: '/appointments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicSeedRoute = ApiPublicSeedRouteImport.update({
-  id: '/api/public/seed',
-  path: '/api/public/seed',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,7 +82,6 @@ export interface FileRoutesByFullPath {
   '/requests': typeof AuthenticatedRequestsRoute
   '/roster': typeof AuthenticatedRosterRoute
   '/staff': typeof AuthenticatedStaffRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,7 +93,6 @@ export interface FileRoutesByTo {
   '/requests': typeof AuthenticatedRequestsRoute
   '/roster': typeof AuthenticatedRosterRoute
   '/staff': typeof AuthenticatedStaffRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,7 +106,6 @@ export interface FileRoutesById {
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/roster': typeof AuthenticatedRosterRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,7 +119,6 @@ export interface FileRouteTypes {
     | '/requests'
     | '/roster'
     | '/staff'
-    | '/api/public/seed'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -140,7 +130,6 @@ export interface FileRouteTypes {
     | '/requests'
     | '/roster'
     | '/staff'
-    | '/api/public/seed'
   id:
     | '__root__'
     | '/'
@@ -153,14 +142,12 @@ export interface FileRouteTypes {
     | '/_authenticated/requests'
     | '/_authenticated/roster'
     | '/_authenticated/staff'
-    | '/api/public/seed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ApiPublicSeedRoute: typeof ApiPublicSeedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,13 +222,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppointmentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/seed': {
-      id: '/api/public/seed'
-      path: '/api/public/seed'
-      fullPath: '/api/public/seed'
-      preLoaderRoute: typeof ApiPublicSeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -272,7 +252,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  ApiPublicSeedRoute: ApiPublicSeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
