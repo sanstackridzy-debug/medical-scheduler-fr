@@ -27,6 +27,7 @@ const navByRole: Record<AppRole, { to: string; label: string; icon: React.ReactN
     { to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { to: "/roster", label: "Duty Roster", icon: <Calendar className="h-4 w-4" /> },
     { to: "/staff", label: "Staff", icon: <Users className="h-4 w-4" /> },
+    { to: "/departments", label: "Departments", icon: <Building2 className="h-4 w-4" /> },
     { to: "/requests", label: "Requests", icon: <ClipboardList className="h-4 w-4" /> },
     { to: "/appointments", label: "Appointments", icon: <CalendarClock className="h-4 w-4" /> },
   ],
