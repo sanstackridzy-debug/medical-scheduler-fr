@@ -14,16 +14,259 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          appt_date: string
+          created_at: string
+          doctor_id: string
+          end_time: string
+          id: string
+          patient_id: string
+          reason: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }
+        Insert: {
+          appt_date: string
+          created_at?: string
+          doctor_id: string
+          end_time: string
+          id?: string
+          patient_id: string
+          reason?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+        }
+        Update: {
+          appt_date?: string
+          created_at?: string
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          patient_id?: string
+          reason?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          read_at: string | null
+          related_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          read_at?: string | null
+          related_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          read_at?: string | null
+          related_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          specialty_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          phone?: string | null
+          specialty_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          specialty_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          created_at: string
+          id: string
+          leave_end: string | null
+          leave_start: string | null
+          reason: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_id: string | null
+          staff_id: string
+          status: Database["public"]["Enums"]["request_status"]
+          swap_with_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leave_end?: string | null
+          leave_start?: string | null
+          reason?: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          staff_id: string
+          status?: Database["public"]["Enums"]["request_status"]
+          swap_with_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leave_end?: string | null
+          leave_start?: string | null
+          reason?: string | null
+          request_type?: Database["public"]["Enums"]["request_type"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          staff_id?: string
+          status?: Database["public"]["Enums"]["request_status"]
+          swap_with_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          period: Database["public"]["Enums"]["shift_period"]
+          shift_date: string
+          staff_id: string
+          type: Database["public"]["Enums"]["shift_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          period: Database["public"]["Enums"]["shift_period"]
+          shift_date: string
+          staff_id: string
+          type: Database["public"]["Enums"]["shift_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          period?: Database["public"]["Enums"]["shift_period"]
+          shift_date?: string
+          staff_id?: string
+          type?: Database["public"]["Enums"]["shift_type"]
+        }
+        Relationships: []
+      }
+      specialties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "doctor" | "nurse" | "patient"
+      appointment_status: "booked" | "cancelled" | "completed"
+      request_status: "pending" | "approved" | "rejected"
+      request_type: "swap" | "leave"
+      shift_period: "morning" | "afternoon" | "night"
+      shift_type: "on_call" | "ward_duty" | "opd" | "surgery" | "er"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +393,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "doctor", "nurse", "patient"],
+      appointment_status: ["booked", "cancelled", "completed"],
+      request_status: ["pending", "approved", "rejected"],
+      request_type: ["swap", "leave"],
+      shift_period: ["morning", "afternoon", "night"],
+      shift_type: ["on_call", "ward_duty", "opd", "surgery", "er"],
+    },
   },
 } as const
