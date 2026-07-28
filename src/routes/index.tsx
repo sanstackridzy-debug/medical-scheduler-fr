@@ -38,7 +38,6 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg"><Link to="/auth">Sign in to your account</Link></Button>
-            <Button asChild size="lg" variant="outline"><Link to="/seed">Seed demo accounts</Link></Button>
           </div>
         </div>
 
