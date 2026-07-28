@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "doctor" | "nurse" | "patient";
+export type AccountStatus = "pending" | "approved" | "rejected";
 
 export interface Profile {
   id: string;
@@ -10,6 +11,8 @@ export interface Profile {
   email: string;
   phone: string | null;
   specialty_id: string | null;
+  status: AccountStatus;
+  requested_role: AppRole | null;
 }
 
 export function useSession() {
