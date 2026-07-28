@@ -90,7 +90,7 @@ function StaffPage() {
   }
 
   async function reject(id: string) {
-    const { error } = await supabase.rpc("reject_staff_account", { _user_id: id, _reason: null });
+    const { error } = await supabase.rpc("reject_staff_account", { _user_id: id });
     if (error) return toast.error(error.message);
     toast.success("Account rejected");
     load();
