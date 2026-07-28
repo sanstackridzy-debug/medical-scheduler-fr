@@ -105,7 +105,9 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          requested_role: Database["public"]["Enums"]["app_role"] | null
           specialty_id: string | null
+          status: Database["public"]["Enums"]["account_status"]
         }
         Insert: {
           created_at?: string
@@ -113,7 +115,9 @@ export type Database = {
           full_name: string
           id: string
           phone?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"] | null
           specialty_id?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
         }
         Update: {
           created_at?: string
@@ -121,7 +125,9 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"] | null
           specialty_id?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
         }
         Relationships: [
           {
@@ -286,6 +292,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_staff_account: { Args: { _user_id: string }; Returns: undefined }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -297,8 +304,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      reject_staff_account: {
+        Args: { _reason?: string; _user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
+      account_status: "pending" | "approved" | "rejected"
       app_role: "admin" | "doctor" | "nurse" | "patient"
       appointment_status: "booked" | "cancelled" | "completed"
       request_status: "pending" | "approved" | "rejected"
@@ -432,6 +444,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["pending", "approved", "rejected"],
       app_role: ["admin", "doctor", "nurse", "patient"],
       appointment_status: ["booked", "cancelled", "completed"],
       request_status: ["pending", "approved", "rejected"],
