@@ -30,6 +30,33 @@ function DashboardPage() {
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
 
+  if (profile?.status === "pending") {
+    return (
+      <AppShell profile={profile} role={null}>
+        <Card>
+          <CardHeader><CardTitle>Awaiting approval</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>Your <span className="font-medium capitalize">{profile.requested_role}</span> account is pending admin approval.</p>
+            <p>You'll be notified once an administrator reviews your request.</p>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
+  if (profile?.status === "rejected") {
+    return (
+      <AppShell profile={profile} role={null}>
+        <Card>
+          <CardHeader><CardTitle>Account not approved</CardTitle></CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Your staff account request was not approved. Please contact your administrator for more information.
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell profile={profile} role={primaryRole}>
       {primaryRole === "admin" && <AdminDashboard />}
@@ -41,6 +68,7 @@ function DashboardPage() {
     </AppShell>
   );
 }
+
 
 function StatCard({ title, value, icon, hint }: { title: string; value: string | number; icon: React.ReactNode; hint?: string }) {
   return (

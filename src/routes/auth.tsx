@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HospitalLogo } from "@/components/hospital-logo";
 import { toast } from "sonner";
 
@@ -24,10 +25,16 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [staffRole, setStaffRole] = useState<"doctor" | "nurse">("doctor");
+  const [specialtyId, setSpecialtyId] = useState<string>("");
+  const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
+    });
+    supabase.from("specialties").select("id, name").order("name").then(({ data }) => {
+      setSpecialties(data ?? []);
     });
   }, [navigate]);
 
@@ -45,7 +52,7 @@ function AuthPage() {
     navigate({ to: "/dashboard" });
   }
 
-  async function signUp(e: React.FormEvent<HTMLFormElement>) {
+  async function signUpPatient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
@@ -60,12 +67,33 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Account created — signing you in");
-    // Try immediate sign-in (email confirmations off by default)
     await supabase.auth.signInWithPassword({
       email: String(fd.get("email")),
       password: String(fd.get("password")),
     });
     navigate({ to: "/dashboard" });
+  }
+
+  async function signUpStaff(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const { error } = await supabase.auth.signUp({
+      email: String(fd.get("email")),
+      password: String(fd.get("password")),
+      options: {
+        data: {
+          full_name: String(fd.get("full_name")),
+          requested_role: staffRole,
+          specialty_id: staffRole === "doctor" ? specialtyId : "",
+        },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Request submitted — an admin will review your account");
+    (e.currentTarget as HTMLFormElement).reset();
   }
 
   return (
@@ -77,13 +105,14 @@ function AuthPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Welcome</CardTitle>
-            <CardDescription>Sign in or create a patient account. Staff accounts are provisioned by admins.</CardDescription>
+            <CardDescription>Sign in, create a patient account, or request staff access.</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>
-                <TabsTrigger value="signup">Create patient account</TabsTrigger>
+                <TabsTrigger value="patient">Patient</TabsTrigger>
+                <TabsTrigger value="staff">Staff</TabsTrigger>
               </TabsList>
               <TabsContent value="signin">
                 <form onSubmit={signIn} className="space-y-3 pt-4">
@@ -100,8 +129,8 @@ function AuthPage() {
                   </Button>
                 </form>
               </TabsContent>
-              <TabsContent value="signup">
-                <form onSubmit={signUp} className="space-y-3 pt-4">
+              <TabsContent value="patient">
+                <form onSubmit={signUpPatient} className="space-y-3 pt-4">
                   <div className="space-y-1">
                     <Label htmlFor="su-name">Full name</Label>
                     <Input id="su-name" name="full_name" required />
@@ -115,7 +144,56 @@ function AuthPage() {
                     <Input id="su-pass" name="password" type="password" minLength={6} required autoComplete="new-password" />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creating..." : "Create account"}
+                    {loading ? "Creating..." : "Create patient account"}
+                  </Button>
+                </form>
+              </TabsContent>
+              <TabsContent value="staff">
+                <form onSubmit={signUpStaff} className="space-y-3 pt-4">
+                  <p className="rounded-md bg-secondary p-2 text-xs text-muted-foreground">
+                    Staff accounts require admin approval before you can sign in.
+                  </p>
+                  <div className="space-y-1">
+                    <Label>Requested role</Label>
+                    <Select value={staffRole} onValueChange={(v) => setStaffRole(v as "doctor" | "nurse")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doctor">Doctor</SelectItem>
+                        <SelectItem value="nurse">Nurse</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {staffRole === "doctor" && (
+                    <div className="space-y-1">
+                      <Label>Specialty</Label>
+                      <Select value={specialtyId} onValueChange={setSpecialtyId}>
+                        <SelectTrigger><SelectValue placeholder="Select a specialty" /></SelectTrigger>
+                        <SelectContent>
+                          {specialties.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label htmlFor="st-name">Full name</Label>
+                    <Input id="st-name" name="full_name" required />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="st-email">Email</Label>
+                    <Input id="st-email" name="email" type="email" required autoComplete="email" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="st-pass">Password (min 6 chars)</Label>
+                    <Input id="st-pass" name="password" type="password" minLength={6} required autoComplete="new-password" />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loading || (staffRole === "doctor" && !specialtyId)}
+                  >
+                    {loading ? "Submitting..." : "Request staff account"}
                   </Button>
                 </form>
               </TabsContent>
