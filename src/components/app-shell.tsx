@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock, Building2 } from "lucide-react";
+import { useAvatarUrl, initialsOf } from "@/lib/avatar";
+import { LogOut, UserCircle, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock, Building2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -53,6 +54,7 @@ export function AppShell({ children, profile, role }: Props) {
   const router = useRouter();
   const qc = useQueryClient();
   const [unread, setUnread] = useState(0);
+  const avatarUrl = useAvatarUrl(profile?.avatar_url);
 
   useEffect(() => {
     if (!profile) return;
@@ -105,9 +107,13 @@ export function AppShell({ children, profile, role }: Props) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {profile?.full_name?.[0]?.toUpperCase() ?? "?"}
-                  </div>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      {initialsOf(profile?.full_name)}
+                    </div>
+                  )}
                   <span className="hidden text-sm sm:inline">{profile?.full_name ?? "..."}</span>
                   {role && <Badge variant="secondary" className="capitalize">{role}</Badge>}
                 </Button>
@@ -115,6 +121,11 @@ export function AppShell({ children, profile, role }: Props) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{profile?.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <UserCircle className="mr-2 h-4 w-4" /> My Profile
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" /> Sign out
                 </DropdownMenuItem>

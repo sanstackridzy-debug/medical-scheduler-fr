@@ -13,6 +13,7 @@ export interface Profile {
   specialty_id: string | null;
   status: AccountStatus;
   requested_role: AppRole | null;
+  avatar_url: string | null;
 }
 
 export function useSession() {
