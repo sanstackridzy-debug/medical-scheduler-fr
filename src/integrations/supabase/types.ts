@@ -307,6 +307,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_doctors: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          specialty_id: string
+          specialty_name: string
+        }[]
+      }
       reject_staff_account: {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined

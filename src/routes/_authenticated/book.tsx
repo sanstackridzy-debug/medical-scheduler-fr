@@ -44,13 +44,19 @@ function BookPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("user_roles")
-      .select("user_id, profiles:user_id(id, full_name, specialty_id, specialties:specialty_id(name))")
-      .eq("role", "doctor")
-      .then(({ data }) => {
-        setDoctors((data ?? []).map((r: any) => r.profiles).filter(Boolean));
-      });
+    supabase.rpc("list_doctors").then(({ data, error }) => {
+      if (error) {
+        toast.error("Could not load doctors");
+        return;
+      }
+      setDoctors(
+        (data ?? []).map((d: any) => ({
+          id: d.id,
+          full_name: d.full_name,
+          specialties: d.specialty_name ? { name: d.specialty_name } : null,
+        })),
+      );
+    });
   }, []);
 
   useEffect(() => {
