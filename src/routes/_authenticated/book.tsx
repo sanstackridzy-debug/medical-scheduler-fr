@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { isDoctorOnDuty } from "@/lib/shift-utils";
@@ -41,6 +42,8 @@ function BookPage() {
   const [reason, setReason] = useState("");
   const [doctorShifts, setDoctorShifts] = useState<any[]>([]);
   const [existingAppts, setExistingAppts] = useState<any[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -71,26 +74,31 @@ function BookPage() {
     return HOURS.filter((h) => !taken.has(h) && isDoctorOnDuty(doctorShifts, date, h));
   }, [doctorId, existingAppts, doctorShifts, date]);
 
+  const selectedDoctor = useMemo(() => doctors.find((d) => d.id === doctorId), [doctors, doctorId]);
+
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
 
-  async function book(slot: string) {
+  async function book() {
+    if (!selectedSlot) return;
     setSaving(true);
-    const [h, m] = slot.split(":").map(Number);
+    const [h, m] = selectedSlot.split(":").map(Number);
     const endMin = h * 60 + m + 30;
     const end = `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
     const { error } = await supabase.from("appointments").insert({
       patient_id: user!.id,
       doctor_id: doctorId,
       appt_date: date,
-      start_time: slot,
+      start_time: selectedSlot,
       end_time: end,
       reason: reason || null,
     });
     setSaving(false);
+    setConfirmOpen(false);
     if (error) return toast.error(error.message);
     toast.success("Appointment booked");
     setReason("");
+    setSelectedSlot(null);
     // Refresh slots
     const { data } = await supabase.from("appointments").select("start_time").eq("doctor_id", doctorId).eq("appt_date", date).eq("status", "booked");
     setExistingAppts(data ?? []);
@@ -99,7 +107,7 @@ function BookPage() {
       user_id: user!.id,
       kind: "appointment_booked",
       title: "Appointment confirmed",
-      body: `You have an appointment on ${date} at ${slot}.`,
+      body: `You have an appointment on ${date} at ${selectedSlot}.`,
     });
   }
 
@@ -151,7 +159,14 @@ function BookPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {availableSlots.map((s) => (
-                    <Button key={s} variant="outline" onClick={() => book(s)} disabled={saving}>{s}</Button>
+                    <Button
+                      key={s}
+                      variant={selectedSlot === s ? "default" : "outline"}
+                      onClick={() => { setSelectedSlot(s); setConfirmOpen(true); }}
+                      disabled={saving}
+                    >
+                      {s}
+                    </Button>
                   ))}
                 </div>
               )}
@@ -159,6 +174,29 @@ function BookPage() {
           </Card>
         )}
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm appointment</DialogTitle>
+            <DialogDescription>Review your appointment details before booking.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2 text-sm">
+            <div><span className="text-muted-foreground">Doctor:</span> {selectedDoctor?.full_name ?? "—"}{selectedDoctor?.specialties?.name ? ` — ${selectedDoctor.specialties.name}` : ""}</div>
+            <div><span className="text-muted-foreground">Date:</span> {format(new Date(date), "EEEE, MMMM d, yyyy")}</div>
+            <div><span className="text-muted-foreground">Time:</span> {selectedSlot} – {selectedSlot && (() => {
+              const [h, m] = selectedSlot.split(":").map(Number);
+              const endMin = h * 60 + m + 30;
+              return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
+            })()}</div>
+            {reason && <div><span className="text-muted-foreground">Reason:</span> {reason}</div>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setConfirmOpen(false); setSelectedSlot(null); }} disabled={saving}>Cancel</Button>
+            <Button onClick={book} disabled={saving}>{saving ? "Booking…" : "Confirm appointment"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
