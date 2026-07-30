@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight, Plus, Download } from "lucide-react";
 import { SHIFT_PERIODS, SHIFT_TYPES, shiftPeriodLabel, shiftPeriodShort, shiftTypeClass, shiftTypeLabel, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { toast } from "sonner";
 import { downloadCSV, downloadPDF } from "@/lib/export";
+import { AutoScheduleDialog } from "@/components/auto-schedule-dialog";
 
 export const Route = createFileRoute("/_authenticated/roster")({
   head: () => ({
@@ -117,6 +118,15 @@ function RosterPage() {
             <Button variant="ghost" size="sm" onClick={() => setMonth(new Date())}>Today</Button>
           </div>
           <div className="flex gap-2">
+            {isAdmin && (
+              <AutoScheduleDialog
+                defaultStart={monthStart}
+                defaultEnd={monthEnd}
+                staff={staff}
+                currentUserId={user.id}
+                onDone={loadShifts}
+              />
+            )}
             <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-4 w-4" /> CSV</Button>
             <Button variant="outline" size="sm" onClick={exportPDF}><Download className="mr-1 h-4 w-4" /> PDF</Button>
           </div>
