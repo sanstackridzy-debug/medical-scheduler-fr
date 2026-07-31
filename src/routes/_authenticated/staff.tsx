@@ -56,6 +56,10 @@ function StaffPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [pending, setPending] = useState<PendingRow[]>([]);
   const deleteFn = useServerFn(deleteUserAccount);
+  const resetFn = useServerFn(resetUserPassword);
+  const [resetTarget, setResetTarget] = useState<Row | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const load = useCallback(async () => {
     const [staffRes, pendingRes] = await Promise.all([
