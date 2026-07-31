@@ -11,11 +11,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Download, Check, X, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Check, X, Trash2, KeyRound } from "lucide-react";
 import { downloadCSV } from "@/lib/export";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { deleteUserAccount } from "@/lib/admin.functions";
+import { deleteUserAccount, resetUserPassword } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/staff")({
   head: () => ({
