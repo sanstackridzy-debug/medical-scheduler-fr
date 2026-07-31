@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
-import { isDoctorOnDuty } from "@/lib/shift-utils";
+import { isDoctorOnDuty, shiftPeriodShort, type ShiftPeriod } from "@/lib/shift-utils";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/book")({
   head: () => ({
@@ -41,6 +42,7 @@ function BookPage() {
   const [date, setDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [reason, setReason] = useState("");
   const [doctorShifts, setDoctorShifts] = useState<any[]>([]);
+  const [dutyMap, setDutyMap] = useState<Record<string, string[]>>({});
   const [existingAppts, setExistingAppts] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -68,13 +70,34 @@ function BookPage() {
     supabase.from("appointments").select("start_time").eq("doctor_id", doctorId).eq("appt_date", date).eq("status", "booked").then(({ data }) => setExistingAppts(data ?? []));
   }, [doctorId, date]);
 
+  // Duty status for every doctor on the chosen date
+  useEffect(() => {
+    if (!date || doctors.length === 0) return;
+    supabase
+      .from("shifts")
+      .select("staff_id, period")
+      .eq("shift_date", date)
+      .in("staff_id", doctors.map((d) => d.id))
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {};
+        (data ?? []).forEach((s: any) => {
+          map[s.staff_id] = [...(map[s.staff_id] ?? []), s.period];
+        });
+        setDutyMap(map);
+      });
+  }, [date, doctors]);
+
   const availableSlots = useMemo(() => {
     if (!doctorId) return [];
     const taken = new Set(existingAppts.map((a) => a.start_time.slice(0, 5)));
     return HOURS.filter((h) => !taken.has(h) && isDoctorOnDuty(doctorShifts, date, h));
   }, [doctorId, existingAppts, doctorShifts, date]);
 
+  const onDutyDoctors = useMemo(() => doctors.filter((d) => (dutyMap[d.id] ?? []).length > 0), [doctors, dutyMap]);
+  const selectedDoctorOnDuty = doctorId ? (dutyMap[doctorId] ?? []).length > 0 : true;
+
   const selectedDoctor = useMemo(() => doctors.find((d) => d.id === doctorId), [doctors, doctorId]);
+
 
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
@@ -127,11 +150,21 @@ function BookPage() {
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Select a doctor" /></SelectTrigger>
                   <SelectContent>
-                    {doctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.full_name}{d.specialties?.name ? ` — ${d.specialties.name}` : ""}
-                      </SelectItem>
-                    ))}
+                    {doctors.map((d) => {
+                      const periods = dutyMap[d.id] ?? [];
+                      return (
+                        <SelectItem key={d.id} value={d.id}>
+                          <span className="flex items-center gap-2">
+                            <span className={periods.length ? "" : "text-muted-foreground"}>
+                              {d.full_name}{d.specialties?.name ? ` — ${d.specialties.name}` : ""}
+                            </span>
+                            <Badge variant={periods.length ? "default" : "outline"} className="text-[10px]">
+                              {periods.length ? `On duty · ${periods.map((p: string) => shiftPeriodShort[p as ShiftPeriod]).join(", ")}` : "Off duty"}
+                            </Badge>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -140,10 +173,32 @@ function BookPage() {
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={format(new Date(), "yyyy-MM-dd")} />
               </div>
             </div>
+
+            {doctorId && !selectedDoctorOnDuty && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <p className="font-medium">{selectedDoctor?.full_name} is off duty on {format(new Date(date), "EEEE, MMM d")}.</p>
+                {onDutyDoctors.length > 0 ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-muted-foreground">Doctors on duty that day:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {onDutyDoctors.map((d) => (
+                        <Button key={d.id} size="sm" variant="outline" onClick={() => setDoctorId(d.id)}>
+                          {d.full_name} · {(dutyMap[d.id] ?? []).map((p: string) => shiftPeriodShort[p as ShiftPeriod]).join(", ")}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">No doctors are on duty that day — try another date.</p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label>Reason (optional)</Label>
               <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Briefly describe your visit" />
             </div>
+
           </CardContent>
         </Card>
 

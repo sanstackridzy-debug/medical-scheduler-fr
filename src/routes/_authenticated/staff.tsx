@@ -11,11 +11,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Download, Check, X, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Check, X, Trash2, KeyRound } from "lucide-react";
 import { downloadCSV } from "@/lib/export";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { deleteUserAccount } from "@/lib/admin.functions";
+import { deleteUserAccount, resetUserPassword } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/staff")({
   head: () => ({
@@ -53,6 +56,10 @@ function StaffPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [pending, setPending] = useState<PendingRow[]>([]);
   const deleteFn = useServerFn(deleteUserAccount);
+  const resetFn = useServerFn(resetUserPassword);
+  const [resetTarget, setResetTarget] = useState<Row | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const load = useCallback(async () => {
     const [staffRes, pendingRes] = await Promise.all([
@@ -105,6 +112,22 @@ function StaffPage() {
       toast.error(e?.message ?? "Failed to delete account");
     }
   }
+
+  async function doReset() {
+    if (!resetTarget) return;
+    setResetting(true);
+    try {
+      await resetFn({ data: { userId: resetTarget.id, newPassword } });
+      toast.success(`Password reset for ${resetTarget.full_name}`);
+      setResetTarget(null);
+      setNewPassword("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to reset password");
+    } finally {
+      setResetting(false);
+    }
+  }
+
 
   return (
     <AppShell profile={profile} role={primaryRole}>
@@ -168,7 +191,17 @@ function StaffPage() {
                     <TableCell><Badge variant="secondary" className="capitalize">{r.role}</Badge></TableCell>
                     <TableCell>{r.specialties?.name ?? "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                      {r.role !== "admin" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Reset password"
+                          onClick={() => { setResetTarget(r); setNewPassword(""); }}
+                        >
+                          <KeyRound className="h-3 w-3" />
+                        </Button>
+                      )}
                       {r.role !== "admin" && r.id !== user.id && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -198,6 +231,34 @@ function StaffPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!resetTarget} onOpenChange={(o) => { if (!o) { setResetTarget(null); setNewPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {resetTarget?.full_name}. They'll be notified in the app and should change it after signing in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
+            <Button onClick={doReset} disabled={resetting || newPassword.length < 8}>
+              {resetting ? "Resetting…" : "Reset password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
+
 }
