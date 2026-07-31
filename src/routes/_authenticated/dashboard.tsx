@@ -88,15 +88,57 @@ function StatCard({ title, value, icon, hint }: { title: string; value: string |
   );
 }
 
+function TileStat({
+  title,
+  value,
+  hint,
+  icon,
+  tone,
+}: {
+  title: string;
+  value: string | number;
+  hint?: string;
+  icon: React.ReactNode;
+  tone: "blue" | "green" | "amber" | "violet";
+}) {
+  const tones: Record<string, string> = {
+    blue: "bg-sky-50 dark:bg-sky-950/30 text-sky-600",
+    green: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600",
+    amber: "bg-amber-50 dark:bg-amber-950/30 text-amber-600",
+    violet: "bg-violet-50 dark:bg-violet-950/30 text-violet-600",
+  };
+  const [bg, fg] = [tones[tone].split(" text-")[0], "text-" + tones[tone].split(" text-")[1]];
+  return (
+    <Card className={`overflow-hidden border-0 ${bg}`}>
+      <CardContent className="flex items-start gap-3 p-4">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background/70 ${fg}`}>{icon}</div>
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-muted-foreground">{title}</div>
+          <div className="text-3xl font-bold leading-tight">{value}</div>
+          {hint && <div className={`text-xs ${fg}`}>{hint}</div>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdminDashboard() {
-  const today = format(new Date(), "yyyy-MM-dd");
-  const nowHour = new Date().getHours();
+  const now = new Date();
+  const today = format(now, "yyyy-MM-dd");
+  const nowHour = now.getHours();
+  const greeting = nowHour < 12 ? "Good Morning" : nowHour < 17 ? "Good Afternoon" : "Good Evening";
   const currentPeriod: ShiftPeriod = nowHour < 15 ? "morning" : nowHour < 23 ? "afternoon" : "night";
 
   const [todayShifts, setTodayShifts] = useState<any[]>([]);
   const [onDutyNow, setOnDutyNow] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [staffCount, setStaffCount] = useState(0);
+  const [pendingAccounts, setPendingAccounts] = useState<any[]>([]);
+  const [weekShifts, setWeekShifts] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+
+  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
 
   useEffect(() => {
     supabase
@@ -119,19 +161,67 @@ function AdminDashboard() {
       .select("id", { count: "exact", head: true })
       .in("role", ["doctor", "nurse"])
       .then(({ count }) => setStaffCount(count ?? 0));
-  }, [today, currentPeriod]);
+    supabase
+      .from("profiles")
+      .select("id, full_name, requested_role")
+      .eq("status", "pending")
+      .limit(5)
+      .then(({ data }) => setPendingAccounts(data ?? []));
+    supabase
+      .from("shifts")
+      .select("id, period, shift_date")
+      .gte("shift_date", weekStart)
+      .lte("shift_date", weekEnd)
+      .then(({ data }) => setWeekShifts(data ?? []));
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid) return;
+      supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(4)
+        .then(({ data: n }) => setNotes(n ?? []));
+    });
+  }, [today, currentPeriod, weekStart, weekEnd]);
+
+  const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
+  const coverage = staffCount > 0 ? Math.min(100, (todayShifts.length / staffCount) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
+      {/* Greeting + current period */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <h1 className="text-2xl font-bold">
+            {greeting}, <span className="text-primary">Admin</span> 👋
+          </h1>
+          <p className="text-sm text-muted-foreground">{format(now, "EEEE, MMMM d, yyyy")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Here's the hospital overview for today.</p>
+        </div>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-muted-foreground">Current Period</div>
+              <div className="truncate font-semibold capitalize text-primary">{shiftPeriodShort[currentPeriod]} shift</div>
+              <div className="text-xs text-muted-foreground">
+                {periodHours(currentPeriod).start} – {periodHours(currentPeriod).end}
+              </div>
+            </div>
+            <Badge className="bg-primary text-primary-foreground">Live</Badge>
+          </CardContent>
+        </Card>
       </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Today's Duties" value={todayShifts.length} icon={<CalIcon className="h-4 w-4" />} hint={`across all shifts`} />
-        <StatCard title="Staff on Duty Now" value={onDutyNow.length} icon={<Clock className="h-4 w-4" />} hint={`${currentPeriod} shift`} />
-        <StatCard title="Pending Requests" value={pendingRequests.length} icon={<ClipboardList className="h-4 w-4" />} hint="need review" />
-        <StatCard title="Total Staff" value={staffCount} icon={<Users className="h-4 w-4" />} hint="doctors + nurses" />
+        <TileStat tone="blue" title="Today's Duties" value={todayShifts.length} icon={<CalIcon className="h-5 w-5" />} hint="across all shifts" />
+        <TileStat tone="green" title="Staff on Duty Now" value={onDutyNow.length} icon={<Users className="h-5 w-5" />} hint={`${currentPeriod} shift`} />
+        <TileStat tone="amber" title="Pending Requests" value={pendingRequests.length} icon={<ClipboardList className="h-5 w-5" />} hint="leave / swap" />
+        <TileStat tone="violet" title="Total Staff" value={staffCount} icon={<Clock className="h-5 w-5" />} hint="doctors + nurses" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -217,7 +307,79 @@ function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Notifications</CardTitle>
+            <Button size="sm" variant="ghost" asChild><Link to="/notifications">View all</Link></Button>
+          </CardHeader>
+          <CardContent>
+            {notes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No notifications.</p>
+            ) : (
+              <ul className="space-y-2">
+                {notes.map((n: any) => (
+                  <li key={n.id} className="rounded-md border p-2">
+                    <div className="text-sm font-medium">{n.title}</div>
+                    <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">{fmt(n.created_at, "MMM d, HH:mm", "")}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-base">Pending accounts</CardTitle>
+              <CardDescription>{pendingAccounts.length} awaiting approval</CardDescription>
+            </div>
+            <Button size="sm" variant="ghost" asChild><Link to="/staff">Review</Link></Button>
+          </CardHeader>
+          <CardContent>
+            {pendingAccounts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No pending signups.</p>
+            ) : (
+              <ul className="space-y-2">
+                {pendingAccounts.map((p: any) => (
+                  <li key={p.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                    <span className="truncate font-medium">{p.full_name ?? "—"}</span>
+                    <Badge variant="secondary" className="capitalize">{p.requested_role ?? "staff"}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" asChild><Link to="/roster">Open roster</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/staff">Manage staff</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/departments">Departments</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/requests">Requests</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Workload Overview</CardTitle>
+          <CardDescription>This week ({fmt(weekStart, "MMM d")} – {fmt(weekEnd, "MMM d")})</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Metric label="Shifts This Week" value={`${weekShifts.length}`} pct={Math.min(100, (weekShifts.length / 50) * 100)} />
+          <Metric label="Night Shifts" value={`${nightShifts}`} pct={Math.min(100, (nightShifts / 15) * 100)} />
+          <Metric label="Today's Coverage" value={`${todayShifts.length} / ${staffCount}`} pct={coverage} />
+          <Metric label="Open Requests" value={`${pendingRequests.length}`} pct={Math.min(100, pendingRequests.length * 10)} />
+        </CardContent>
+      </Card>
     </div>
+
   );
 }
 
