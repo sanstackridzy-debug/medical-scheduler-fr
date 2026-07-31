@@ -149,11 +149,21 @@ function BookPage() {
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Select a doctor" /></SelectTrigger>
                   <SelectContent>
-                    {doctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.full_name}{d.specialties?.name ? ` — ${d.specialties.name}` : ""}
-                      </SelectItem>
-                    ))}
+                    {doctors.map((d) => {
+                      const periods = dutyMap[d.id] ?? [];
+                      return (
+                        <SelectItem key={d.id} value={d.id}>
+                          <span className="flex items-center gap-2">
+                            <span className={periods.length ? "" : "text-muted-foreground"}>
+                              {d.full_name}{d.specialties?.name ? ` — ${d.specialties.name}` : ""}
+                            </span>
+                            <Badge variant={periods.length ? "default" : "outline"} className="text-[10px]">
+                              {periods.length ? `On duty · ${periods.map((p: string) => shiftPeriodShort[p as ShiftPeriod]).join(", ")}` : "Off duty"}
+                            </Badge>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -162,10 +172,32 @@ function BookPage() {
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={format(new Date(), "yyyy-MM-dd")} />
               </div>
             </div>
+
+            {doctorId && !selectedDoctorOnDuty && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <p className="font-medium">{selectedDoctor?.full_name} is off duty on {format(new Date(date), "EEEE, MMM d")}.</p>
+                {onDutyDoctors.length > 0 ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-muted-foreground">Doctors on duty that day:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {onDutyDoctors.map((d) => (
+                        <Button key={d.id} size="sm" variant="outline" onClick={() => setDoctorId(d.id)}>
+                          {d.full_name} · {(dutyMap[d.id] ?? []).map((p: string) => shiftPeriodShort[p as ShiftPeriod]).join(", ")}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">No doctors are on duty that day — try another date.</p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label>Reason (optional)</Label>
               <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Briefly describe your visit" />
             </div>
+
           </CardContent>
         </Card>
 
