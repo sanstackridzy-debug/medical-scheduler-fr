@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
-import { isDoctorOnDuty } from "@/lib/shift-utils";
+import { isDoctorOnDuty, shiftPeriodShort, type ShiftPeriod } from "@/lib/shift-utils";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/book")({
   head: () => ({
