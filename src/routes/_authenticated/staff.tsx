@@ -191,7 +191,17 @@ function StaffPage() {
                     <TableCell><Badge variant="secondary" className="capitalize">{r.role}</Badge></TableCell>
                     <TableCell>{r.specialties?.name ?? "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                      {r.role !== "admin" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Reset password"
+                          onClick={() => { setResetTarget(r); setNewPassword(""); }}
+                        >
+                          <KeyRound className="h-3 w-3" />
+                        </Button>
+                      )}
                       {r.role !== "admin" && r.id !== user.id && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
