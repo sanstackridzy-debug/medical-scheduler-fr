@@ -212,7 +212,7 @@ function AdminDashboard() {
                 {periodHours(currentPeriod).start} – {periodHours(currentPeriod).end}
               </div>
             </div>
-            <Badge className="bg-[--shift-oncall] text-white">Live</Badge>
+            <Badge className="bg-primary text-primary-foreground">Live</Badge>
           </CardContent>
         </Card>
       </div>
