@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HospitalLogo } from "@/components/hospital-logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -28,6 +29,7 @@ function AuthPage() {
   const [staffRole, setStaffRole] = useState<"doctor" | "nurse">("doctor");
   const [specialtyId, setSpecialtyId] = useState<string>("");
   const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -186,7 +188,25 @@ function AuthPage() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="st-pass">Password (min 6 chars)</Label>
-                    <Input id="st-pass" name="password" type="password" minLength={6} required autoComplete="new-password" />
+                    <div className="relative">
+                      <Input
+                        id="st-pass"
+                        name="password"
+                        type={showStaffPassword ? "text" : "password"}
+                        minLength={6}
+                        required
+                        autoComplete="new-password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        aria-label={showStaffPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowStaffPassword((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      >
+                        {showStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
