@@ -69,13 +69,34 @@ function BookPage() {
     supabase.from("appointments").select("start_time").eq("doctor_id", doctorId).eq("appt_date", date).eq("status", "booked").then(({ data }) => setExistingAppts(data ?? []));
   }, [doctorId, date]);
 
+  // Duty status for every doctor on the chosen date
+  useEffect(() => {
+    if (!date || doctors.length === 0) return;
+    supabase
+      .from("shifts")
+      .select("staff_id, period")
+      .eq("shift_date", date)
+      .in("staff_id", doctors.map((d) => d.id))
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {};
+        (data ?? []).forEach((s: any) => {
+          map[s.staff_id] = [...(map[s.staff_id] ?? []), s.period];
+        });
+        setDutyMap(map);
+      });
+  }, [date, doctors]);
+
   const availableSlots = useMemo(() => {
     if (!doctorId) return [];
     const taken = new Set(existingAppts.map((a) => a.start_time.slice(0, 5)));
     return HOURS.filter((h) => !taken.has(h) && isDoctorOnDuty(doctorShifts, date, h));
   }, [doctorId, existingAppts, doctorShifts, date]);
 
+  const onDutyDoctors = useMemo(() => doctors.filter((d) => (dutyMap[d.id] ?? []).length > 0), [doctors, dutyMap]);
+  const selectedDoctorOnDuty = doctorId ? (dutyMap[doctorId] ?? []).length > 0 : true;
+
   const selectedDoctor = useMemo(() => doctors.find((d) => d.id === doctorId), [doctors, doctorId]);
+
 
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
