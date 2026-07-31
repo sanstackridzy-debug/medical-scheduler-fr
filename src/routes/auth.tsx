@@ -188,7 +188,25 @@ function AuthPage() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="st-pass">Password (min 6 chars)</Label>
-                    <Input id="st-pass" name="password" type="password" minLength={6} required autoComplete="new-password" />
+                    <div className="relative">
+                      <Input
+                        id="st-pass"
+                        name="password"
+                        type={showStaffPassword ? "text" : "password"}
+                        minLength={6}
+                        required
+                        autoComplete="new-password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        aria-label={showStaffPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowStaffPassword((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      >
+                        {showStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
