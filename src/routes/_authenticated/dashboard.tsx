@@ -307,7 +307,79 @@ function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Notifications</CardTitle>
+            <Button size="sm" variant="ghost" asChild><Link to="/notifications">View all</Link></Button>
+          </CardHeader>
+          <CardContent>
+            {notes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No notifications.</p>
+            ) : (
+              <ul className="space-y-2">
+                {notes.map((n: any) => (
+                  <li key={n.id} className="rounded-md border p-2">
+                    <div className="text-sm font-medium">{n.title}</div>
+                    <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">{fmt(n.created_at, "MMM d, HH:mm", "")}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-base">Pending accounts</CardTitle>
+              <CardDescription>{pendingAccounts.length} awaiting approval</CardDescription>
+            </div>
+            <Button size="sm" variant="ghost" asChild><Link to="/staff">Review</Link></Button>
+          </CardHeader>
+          <CardContent>
+            {pendingAccounts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No pending signups.</p>
+            ) : (
+              <ul className="space-y-2">
+                {pendingAccounts.map((p: any) => (
+                  <li key={p.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                    <span className="truncate font-medium">{p.full_name ?? "—"}</span>
+                    <Badge variant="secondary" className="capitalize">{p.requested_role ?? "staff"}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" asChild><Link to="/roster">Open roster</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/staff">Manage staff</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/departments">Departments</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/requests">Requests</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Workload Overview</CardTitle>
+          <CardDescription>This week ({fmt(weekStart, "MMM d")} – {fmt(weekEnd, "MMM d")})</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Metric label="Shifts This Week" value={`${weekShifts.length}`} pct={Math.min(100, (weekShifts.length / 50) * 100)} />
+          <Metric label="Night Shifts" value={`${nightShifts}`} pct={Math.min(100, (nightShifts / 15) * 100)} />
+          <Metric label="Today's Coverage" value={`${todayShifts.length} / ${staffCount}`} pct={coverage} />
+          <Metric label="Open Requests" value={`${pendingRequests.length}`} pct={Math.min(100, pendingRequests.length * 10)} />
+        </CardContent>
+      </Card>
     </div>
+
   );
 }
 
