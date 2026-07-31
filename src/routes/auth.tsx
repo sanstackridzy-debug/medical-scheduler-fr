@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HospitalLogo } from "@/components/hospital-logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -28,6 +29,7 @@ function AuthPage() {
   const [staffRole, setStaffRole] = useState<"doctor" | "nurse">("doctor");
   const [specialtyId, setSpecialtyId] = useState<string>("");
   const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
