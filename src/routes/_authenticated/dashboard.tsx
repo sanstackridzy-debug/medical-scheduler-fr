@@ -1,12 +1,13 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useSession, useMyProfile } from "@/lib/auth-hooks";
+import { useSession, useMyProfile, type Profile } from "@/lib/auth-hooks";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { shiftTypeLabel, shiftPeriodShort, isDoctorOnDuty, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
+import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
+import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
