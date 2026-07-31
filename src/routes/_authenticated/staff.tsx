@@ -113,6 +113,22 @@ function StaffPage() {
     }
   }
 
+  async function doReset() {
+    if (!resetTarget) return;
+    setResetting(true);
+    try {
+      await resetFn({ data: { userId: resetTarget.id, newPassword } });
+      toast.success(`Password reset for ${resetTarget.full_name}`);
+      setResetTarget(null);
+      setNewPassword("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to reset password");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+
   return (
     <AppShell profile={profile} role={primaryRole}>
       <div className="space-y-6">
