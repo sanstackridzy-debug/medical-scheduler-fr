@@ -32,12 +32,12 @@ const HOURS = Array.from({ length: 20 }, (_, i) => {
   const h = Math.floor(total / 60).toString().padStart(2, "0");
   const m = (total % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
+});
+
 const fmtDate = (value: string, pattern: string) => {
   const d = new Date(`${value}T00:00:00`);
   return value && !Number.isNaN(d.getTime()) ? format(d, pattern) : "—";
 };
-
-});
 
 function BookPage() {
   const { user, loading } = useSession();
