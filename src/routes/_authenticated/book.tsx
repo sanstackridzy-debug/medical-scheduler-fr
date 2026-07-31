@@ -32,6 +32,11 @@ const HOURS = Array.from({ length: 20 }, (_, i) => {
   const h = Math.floor(total / 60).toString().padStart(2, "0");
   const m = (total % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
+const fmtDate = (value: string, pattern: string) => {
+  const d = new Date(`${value}T00:00:00`);
+  return value && !Number.isNaN(d.getTime()) ? format(d, pattern) : "—";
+};
+
 });
 
 function BookPage() {
@@ -176,7 +181,7 @@ function BookPage() {
 
             {doctorId && !selectedDoctorOnDuty && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                <p className="font-medium">{selectedDoctor?.full_name} is off duty on {format(new Date(date), "EEEE, MMM d")}.</p>
+                <p className="font-medium">{selectedDoctor?.full_name} is off duty on {fmtDate(date, "EEEE, MMM d")}.</p>
                 {onDutyDoctors.length > 0 ? (
                   <div className="mt-2 space-y-1">
                     <p className="text-muted-foreground">Doctors on duty that day:</p>
@@ -206,7 +211,7 @@ function BookPage() {
           <Card>
             <CardHeader>
               <CardTitle>Available slots</CardTitle>
-              <CardDescription>{availableSlots.length} open on {format(new Date(date), "MMM d")}</CardDescription>
+              <CardDescription>{availableSlots.length} open on {fmtDate(date, "MMM d")}</CardDescription>
             </CardHeader>
             <CardContent>
               {availableSlots.length === 0 ? (
@@ -238,7 +243,7 @@ function BookPage() {
           </DialogHeader>
           <div className="space-y-2 py-2 text-sm">
             <div><span className="text-muted-foreground">Doctor:</span> {selectedDoctor?.full_name ?? "—"}{selectedDoctor?.specialties?.name ? ` — ${selectedDoctor.specialties.name}` : ""}</div>
-            <div><span className="text-muted-foreground">Date:</span> {format(new Date(date), "EEEE, MMMM d, yyyy")}</div>
+            <div><span className="text-muted-foreground">Date:</span> {fmtDate(date, "EEEE, MMMM d, yyyy")}</div>
             <div><span className="text-muted-foreground">Time:</span> {selectedSlot} – {selectedSlot && (() => {
               const [h, m] = selectedSlot.split(":").map(Number);
               const endMin = h * 60 + m + 30;
