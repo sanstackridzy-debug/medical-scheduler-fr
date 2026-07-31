@@ -41,6 +41,7 @@ function BookPage() {
   const [date, setDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [reason, setReason] = useState("");
   const [doctorShifts, setDoctorShifts] = useState<any[]>([]);
+  const [dutyMap, setDutyMap] = useState<Record<string, string[]>>({});
   const [existingAppts, setExistingAppts] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
