@@ -60,7 +60,9 @@ function DashboardPage() {
   return (
     <AppShell profile={profile} role={primaryRole}>
       {primaryRole === "admin" && <AdminDashboard />}
-      {(primaryRole === "doctor" || primaryRole === "nurse") && <StaffDashboard userId={user.id} role={primaryRole} />}
+      {(primaryRole === "doctor" || primaryRole === "nurse") && (
+        <StaffDashboard userId={user.id} role={primaryRole} profile={profile} />
+      )}
       {primaryRole === "patient" && <PatientDashboard userId={user.id} />}
       {!primaryRole && (
         <Card><CardContent className="p-6 text-muted-foreground">No role assigned. Contact an administrator.</CardContent></Card>
@@ -218,11 +220,36 @@ function AdminDashboard() {
   );
 }
 
-function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nurse" }) {
-  const today = format(new Date(), "yyyy-MM-dd");
+function safeDate(v?: string | null) {
+  if (!v) return null;
+  const d = new Date(v.length <= 10 ? `${v}T00:00:00` : v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmt(v: string | null | undefined, pattern: string, fallback = "—") {
+  const d = safeDate(v);
+  return d ? format(d, pattern) : fallback;
+}
+function hhmm(t?: string | null) {
+  return t ? String(t).slice(0, 5) : "—";
+}
+
+function StaffDashboard({ userId, role, profile }: { userId: string; role: "doctor" | "nurse"; profile: Profile | null }) {
+  const now = new Date();
+  const today = format(now, "yyyy-MM-dd");
+  const nowHour = now.getHours();
+  const currentPeriod: ShiftPeriod = nowHour >= 7 && nowHour < 15 ? "morning" : nowHour >= 15 && nowHour < 23 ? "afternoon" : "night";
+
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [appts, setAppts] = useState<any[]>([]);
-  const [onDutyNow, setOnDutyNow] = useState(false);
+  const [todayAppts, setTodayAppts] = useState<any[]>([]);
+  const [weekShifts, setWeekShifts] = useState<any[]>([]);
+  const [pendingReq, setPendingReq] = useState(0);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [specialty, setSpecialty] = useState<string | null>(null);
+  const avatarUrl = useAvatarUrl(profile?.avatar_url);
+
+  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
 
   useEffect(() => {
     supabase
@@ -232,10 +259,31 @@ function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nu
       .gte("shift_date", today)
       .order("shift_date")
       .limit(10)
-      .then(({ data }) => {
-        setUpcoming(data ?? []);
-        setOnDutyNow(isDoctorOnDuty(data ?? [], today, format(new Date(), "HH:mm")));
-      });
+      .then(({ data }) => setUpcoming(data ?? []));
+
+    supabase
+      .from("shifts")
+      .select("*")
+      .eq("staff_id", userId)
+      .gte("shift_date", weekStart)
+      .lte("shift_date", weekEnd)
+      .then(({ data }) => setWeekShifts(data ?? []));
+
+    supabase
+      .from("requests")
+      .select("id", { count: "exact", head: true })
+      .eq("staff_id", userId)
+      .eq("status", "pending")
+      .then(({ count }) => setPendingReq(count ?? 0));
+
+    supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .then(({ data }) => setNotes(data ?? []));
+
     if (role === "doctor") {
       supabase
         .from("appointments")
@@ -245,24 +293,103 @@ function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nu
         .eq("status", "booked")
         .order("appt_date")
         .limit(10)
-        .then(({ data }) => setAppts(data ?? []));
+        .then(({ data }) => {
+          const rows = data ?? [];
+          setAppts(rows);
+          setTodayAppts(rows.filter((a: any) => a.appt_date === today));
+        });
     }
-  }, [userId, today, role]);
+  }, [userId, today, role, weekStart, weekEnd]);
+
+  useEffect(() => {
+    if (!profile?.specialty_id) {
+      setSpecialty(null);
+      return;
+    }
+    supabase
+      .from("specialties")
+      .select("name")
+      .eq("id", profile.specialty_id)
+      .maybeSingle()
+      .then(({ data }) => setSpecialty((data as any)?.name ?? null));
+  }, [profile?.specialty_id]);
+
+  const todayShifts = upcoming.filter((s) => s.shift_date === today);
+  const currentShift = todayShifts.find((s) => s.period === currentPeriod) ?? null;
+  const weeklyHours = weekShifts.length * 8;
+  const nightShifts = weekShifts.filter((s) => s.period === "night").length;
+  const greeting = nowHour < 12 ? "Good Morning" : nowHour < 17 ? "Good Afternoon" : "Good Evening";
+
+  const timeline = [
+    ...todayShifts.map((s) => {
+      const h = periodHours(s.period as ShiftPeriod);
+      return {
+        key: `s-${s.id}`,
+        time: h.start,
+        title: `${shiftPeriodShort[s.period as ShiftPeriod]} shift — ${shiftTypeLabel[s.type as ShiftType]}`,
+        sub: `${h.start} – ${h.end}`,
+        icon: <CalIcon className="h-3.5 w-3.5" />,
+      };
+    }),
+    ...todayAppts.map((a) => ({
+      key: `a-${a.id}`,
+      time: hhmm(a.start_time),
+      title: "Appointment",
+      sub: a.profiles?.full_name ?? "Patient",
+      icon: <CalendarClock className="h-3.5 w-3.5" />,
+    })),
+  ].sort((x, y) => x.time.localeCompare(y.time));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold capitalize">{role} Dashboard</h1>
-          <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
+      {/* Greeting + current shift */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <h1 className="text-2xl font-bold">
+            {greeting}, <span className="text-primary">{profile?.full_name ?? "there"}</span> 👋
+          </h1>
+          <p className="text-sm text-muted-foreground">{format(now, "EEEE, MMMM d, yyyy")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Here's your schedule and overview for today.</p>
         </div>
-        {onDutyNow && <Badge className="bg-[--shift-oncall] text-white">On-call now</Badge>}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>My upcoming duties</CardTitle>
-            <CardDescription>Next {upcoming.length} shifts</CardDescription>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CalIcon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-muted-foreground">Current Shift</div>
+              {currentShift ? (
+                <>
+                  <div className="truncate font-semibold text-primary">
+                    {shiftPeriodShort[currentShift.period as ShiftPeriod]} · {shiftTypeLabel[currentShift.type as ShiftType]}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {periodHours(currentShift.period as ShiftPeriod).start} – {periodHours(currentShift.period as ShiftPeriod).end}
+                  </div>
+                </>
+              ) : (
+                <div className="font-semibold text-muted-foreground">Off duty</div>
+              )}
+            </div>
+            {currentShift && <Badge className="bg-[--shift-oncall] text-white">In progress</Badge>}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Today's Shifts" value={todayShifts.length} icon={<CalIcon className="h-4 w-4" />} hint={currentShift ? shiftPeriodShort[currentShift.period as ShiftPeriod] + " shift" : "none active"} />
+        <StatCard title="Upcoming Appointments" value={role === "doctor" ? appts.length : "—"} icon={<CalendarClock className="h-4 w-4" />} hint={role === "doctor" ? `${todayAppts.length} today` : "not applicable"} />
+        <StatCard title="Pending Requests" value={pendingReq} icon={<ClipboardList className="h-4 w-4" />} hint="leave / swap" />
+        <StatCard title="Hours This Week" value={`${weeklyHours} hrs`} icon={<Clock className="h-4 w-4" />} hint={`${weekShifts.length} duties scheduled`} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Upcoming duties */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">My Upcoming Duties</CardTitle>
+            <Button size="sm" variant="ghost" asChild><Link to="/roster">View all</Link></Button>
           </CardHeader>
           <CardContent>
             {upcoming.length === 0 ? (
@@ -270,23 +397,118 @@ function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nu
             ) : (
               <ul className="space-y-2">
                 {upcoming.map((s: any) => (
-                  <li key={s.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                    <div>
-                      <div className="font-medium">{format(new Date(s.shift_date), "EEE, MMM d")}</div>
-                      <div className="text-xs text-muted-foreground capitalize">{s.period}</div>
+                  <li key={s.id} className="flex items-center gap-3 rounded-md border-l-4 border-primary bg-secondary/40 p-2">
+                    <div className="w-14 shrink-0 text-center">
+                      <div className="text-[10px] font-semibold uppercase text-muted-foreground">{fmt(s.shift_date, "EEE")}</div>
+                      <div className="text-xs font-bold">{fmt(s.shift_date, "MMM d")}</div>
                     </div>
-                    <Badge variant="outline">{shiftTypeLabel[s.type as ShiftType]}</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium capitalize">{s.period} shift</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {shiftTypeLabel[s.type as ShiftType]} · {periodHours(s.period as ShiftPeriod).start}–{periodHours(s.period as ShiftPeriod).end}
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
           </CardContent>
         </Card>
+
+        {/* Timeline */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-base">Today's Timeline</CardTitle>
+            <CardDescription>{format(now, "MMMM d")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {timeline.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing scheduled today.</p>
+            ) : (
+              <ol className="relative space-y-4 border-l pl-4">
+                {timeline.map((t) => (
+                  <li key={t.key} className="relative">
+                    <span className="absolute -left-[22px] top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary" />
+                    <div className="text-xs font-semibold text-muted-foreground">{t.time}</div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium">{t.icon}{t.title}</div>
+                    <div className="text-xs text-muted-foreground">{t.sub}</div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Profile + notifications + quick actions */}
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-3 flex items-center gap-3">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={profile?.full_name ?? "Profile photo"} className="h-11 w-11 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                    {initialsOf(profile?.full_name)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="truncate font-semibold">{profile?.full_name ?? "—"}</div>
+                  <div className="truncate text-xs capitalize text-muted-foreground">{specialty ?? role}</div>
+                </div>
+              </div>
+              <dl className="space-y-1.5 text-xs">
+                <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Role</dt><dd className="font-medium capitalize">{role}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Department</dt><dd className="truncate font-medium">{specialty ?? "Unassigned"}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Email</dt><dd className="truncate font-medium">{profile?.email ?? "—"}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Phone</dt><dd className="font-medium">{profile?.phone ?? "—"}</dd></div>
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Notifications</CardTitle>
+              <Button size="sm" variant="ghost" asChild><Link to="/notifications">View all</Link></Button>
+            </CardHeader>
+            <CardContent>
+              {notes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No notifications.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {notes.map((n: any) => (
+                    <li key={n.id} className="rounded-md border p-2">
+                      <div className="text-sm font-medium">{n.title}</div>
+                      <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">{fmt(n.created_at, "MMM d, HH:mm", "")}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" asChild><Link to="/requests">Request leave</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link to="/requests">Swap shift</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link to="/roster">View roster</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link to="/profile">My profile</Link></Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Appointments today + workload */}
+      <div className="grid gap-4 lg:grid-cols-2">
         {role === "doctor" && (
           <Card>
-            <CardHeader>
-              <CardTitle>My appointments</CardTitle>
-              <CardDescription>Upcoming patient bookings</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base">My Appointments</CardTitle>
+                <CardDescription>Upcoming patient bookings</CardDescription>
+              </div>
+              <Button size="sm" variant="ghost" asChild><Link to="/appointments">View all</Link></Button>
             </CardHeader>
             <CardContent>
               {appts.length === 0 ? (
@@ -296,8 +518,8 @@ function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nu
                   {appts.map((a: any) => (
                     <li key={a.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
                       <div>
-                        <div className="font-medium">{a.profiles?.full_name}</div>
-                        <div className="text-xs text-muted-foreground">{format(new Date(a.appt_date), "MMM d")} · {a.start_time.slice(0,5)}</div>
+                        <div className="font-medium">{a.profiles?.full_name ?? "Patient"}</div>
+                        <div className="text-xs text-muted-foreground">{fmt(a.appt_date, "MMM d")} · {hhmm(a.start_time)}</div>
                       </div>
                       <CalendarClock className="h-4 w-4 text-muted-foreground" />
                     </li>
@@ -307,6 +529,30 @@ function StaffDashboard({ userId, role }: { userId: string; role: "doctor" | "nu
             </CardContent>
           </Card>
         )}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Workload Overview</CardTitle>
+            <CardDescription>This week ({fmt(weekStart, "MMM d")} – {fmt(weekEnd, "MMM d")})</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Metric label="Weekly Hours" value={`${weeklyHours} / 50`} pct={Math.min(100, (weeklyHours / 50) * 100)} />
+            <Metric label="Duties" value={`${weekShifts.length}`} pct={Math.min(100, (weekShifts.length / 7) * 100)} />
+            <Metric label="Night Shifts" value={`${nightShifts}`} pct={Math.min(100, (nightShifts / 3) * 100)} />
+            <Metric label="Appointments" value={`${role === "doctor" ? appts.length : 0}`} pct={Math.min(100, ((role === "doctor" ? appts.length : 0) / 25) * 100)} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, pct }: { label: string; value: string; pct: number }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-bold">{value}</div>
+      <div className="mt-1 h-1.5 w-full rounded-full bg-secondary">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${Number.isFinite(pct) ? pct : 0}%` }} />
       </div>
     </div>
   );
