@@ -231,6 +231,34 @@ function StaffPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!resetTarget} onOpenChange={(o) => { if (!o) { setResetTarget(null); setNewPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {resetTarget?.full_name}. They'll be notified in the app and should change it after signing in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
+            <Button onClick={doReset} disabled={resetting || newPassword.length < 8}>
+              {resetting ? "Resetting…" : "Reset password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
+
 }
