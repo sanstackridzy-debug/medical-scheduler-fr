@@ -28,6 +28,16 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const { user, loading } = useSession();
   const { profile, primaryRole, loading: pLoading } = useMyProfile(user);
+  const welcomedRef = useRef(false);
+
+  useEffect(() => {
+    if (welcomedRef.current) return;
+    if (!profile || pLoading) return;
+    welcomedRef.current = true;
+    toast.success(`Welcome back${profile.full_name ? ", " + profile.full_name : ""}`, {
+      description: "You're signed in to MediRoster.",
+    });
+  }, [profile, pLoading]);
 
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
