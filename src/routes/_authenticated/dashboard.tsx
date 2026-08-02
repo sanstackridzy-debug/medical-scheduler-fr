@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useSession, useMyProfile, type Profile } from "@/lib/auth-hooks";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
@@ -11,6 +11,7 @@ import { format, startOfWeek, endOfWeek } from "date-fns";
 import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -27,6 +28,16 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const { user, loading } = useSession();
   const { profile, primaryRole, loading: pLoading } = useMyProfile(user);
+  const welcomedRef = useRef(false);
+
+  useEffect(() => {
+    if (welcomedRef.current) return;
+    if (!profile || pLoading) return;
+    welcomedRef.current = true;
+    toast.success(`Welcome back${profile.full_name ? ", " + profile.full_name : ""}`, {
+      description: "You're signed in to MediRoster.",
+    });
+  }, [profile, pLoading]);
 
   if (loading || pLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" />;
