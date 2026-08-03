@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { addDays, format, parseISO, differenceInCalendarDays } from "date-fns";
-import { Repeat } from "lucide-react";
+import { addMonths, format, parseISO, differenceInCalendarDays } from "date-fns";
+import { Repeat, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SHIFT_PERIODS, SHIFT_TYPES, shiftPeriodLabel, shiftTypeLabel, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
+import { useServerFn } from "@tanstack/react-start";
+import { generateSmartSchedule } from "@/lib/scheduling.functions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const WEEKDAYS = [
   { idx: 1, label: "Mon" },
@@ -36,11 +42,13 @@ export function AutoScheduleDialog({ defaultStart, defaultEnd, staff, currentUse
   const [end, setEnd] = useState(format(defaultEnd, "yyyy-MM-dd"));
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [periods, setPeriods] = useState<ShiftPeriod[]>(["morning", "afternoon"]);
-  const [type, setType] = useState<ShiftType>("ward_duty");
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(["ward_duty"]);
   const [pool, setPool] = useState<string[]>([]);
   const [perShift, setPerShift] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"all" | "doctor" | "nurse">("all");
-  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof generateSmartSchedule>> | null>(null);
+  const generateFn = useServerFn(generateSmartSchedule);
 
   const eligible = staff.filter((s) => roleFilter === "all" || s.role === roleFilter);
   const selected = pool.filter((id) => eligible.some((s) => s.id === id));
@@ -55,65 +63,75 @@ export function AutoScheduleDialog({ defaultStart, defaultEnd, staff, currentUse
     if (differenceInCalendarDays(e, s) < 0) return toast.error("End date must be after start date");
     if (differenceInCalendarDays(e, s) > 180) return toast.error("Range is limited to 180 days");
     if (periods.length === 0) return toast.error("Pick at least one period");
+    if (shiftTypes.length === 0) return toast.error("Pick at least one shift type");
     if (weekdays.length === 0) return toast.error("Pick at least one weekday");
     if (selected.length === 0) return toast.error("Pick at least one staff member for the rotation");
     if (perShift > selected.length) return toast.error("Staff per shift exceeds the rotation pool");
 
-    setSaving(true);
+    setGenerating(true);
     try {
-      const { data: existing } = await supabase
-        .from("shifts")
-        .select("staff_id, shift_date, period")
-        .gte("shift_date", start)
-        .lte("shift_date", end);
-      const taken = new Set((existing ?? []).map((r: any) => `${r.staff_id}|${r.shift_date}|${r.period}`));
-
-      const rows: any[] = [];
-      let cursor = 0;
-      for (let d = s; differenceInCalendarDays(e, d) >= 0; d = addDays(d, 1)) {
-        if (!weekdays.includes(d.getDay())) continue;
-        const date = format(d, "yyyy-MM-dd");
-        for (const p of SHIFT_PERIODS.filter((x) => periods.includes(x))) {
-          for (let i = 0; i < perShift; i++) {
-            const staffId = selected[cursor % selected.length];
-            cursor++;
-            const key = `${staffId}|${date}|${p}`;
-            if (taken.has(key)) continue;
-            taken.add(key);
-            rows.push({ staff_id: staffId, shift_date: date, period: p, type, created_by: currentUserId, notes: "Auto-generated" });
-          }
-        }
-      }
-
-      if (rows.length === 0) {
-        toast.info("Nothing to generate — those shifts already exist");
-        setSaving(false);
-        return;
-      }
-
-      for (let i = 0; i < rows.length; i += 200) {
-        const { error } = await supabase.from("shifts").insert(rows.slice(i, i + 200));
-        if (error) throw error;
-      }
-      toast.success(`Generated ${rows.length} shift${rows.length === 1 ? "" : "s"}`);
-      setOpen(false);
-      onDone();
+      const res = await generateFn({
+        data: {
+          start,
+          end,
+          periods,
+          shiftTypes,
+          weekdays,
+          staffIds: selected,
+          perShift,
+        },
+      });
+      setResult(res);
+      if (res.shifts.length === 0) toast.info("No shifts could be generated");
     } catch (err: any) {
-      toast.error(err.message ?? "Could not generate shifts");
+      toast.error(err.message ?? "Could not generate schedule");
     } finally {
-      setSaving(false);
+      setGenerating(false);
     }
+  }
+
+  async function apply() {
+    if (!result || result.shifts.length === 0) return;
+    const rows = result.shifts.map((s) => ({
+      staff_id: s.staff_id,
+      shift_date: s.shift_date,
+      period: s.period,
+      type: s.type,
+      created_by: currentUserId,
+      notes: "Auto-generated",
+    }));
+
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await supabase.from("shifts").insert(rows.slice(i, i + 200));
+      if (error) throw error;
+    }
+
+    toast.success(`Created ${rows.length} shift${rows.length === 1 ? "" : "s"}`);
+    setOpen(false);
+    setResult(null);
+    setPool([]);
+    onDone();
+  }
+
+  function cancel() {
+    setOpen(false);
+    setResult(null);
+    setPool([]);
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm"><Repeat className="mr-1 h-4 w-4" /> Auto-generate</Button>
+        <Button variant="outline" size="sm">
+          <Repeat className="mr-1 h-4 w-4" /> Smart schedule
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Auto-generate repeating shifts</DialogTitle>
-          <DialogDescription>Rotate a pool of staff across the selected weekdays and periods. Existing assignments are skipped.</DialogDescription>
+          <DialogTitle>Smart auto-scheduler</DialogTitle>
+          <DialogDescription>
+            Generate a fair schedule that respects availability, skills, and fatigue rules.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -145,31 +163,46 @@ export function AutoScheduleDialog({ defaultStart, defaultEnd, staff, currentUse
             </div>
           </div>
 
-          <div>
-            <Label>Periods</Label>
-            <div className="mt-1 space-y-1">
-              {SHIFT_PERIODS.map((p) => (
-                <label key={p} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={periods.includes(p)} onCheckedChange={() => toggle(periods, p, setPeriods)} />
-                  {shiftPeriodLabel[p]}
-                </label>
-              ))}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Periods</Label>
+              <div className="mt-1 space-y-1">
+                {SHIFT_PERIODS.map((p) => (
+                  <label key={p} className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={periods.includes(p)} onCheckedChange={() => toggle(periods, p, setPeriods)} />
+                    {shiftPeriodLabel[p]}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Shift types</Label>
+              <div className="mt-1 space-y-1">
+                {SHIFT_TYPES.map((t) => (
+                  <label key={t} className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={shiftTypes.includes(t)} onCheckedChange={() => toggle(shiftTypes, t, setShiftTypes)} />
+                    {shiftTypeLabel[t]}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Shift type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as ShiftType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {SHIFT_TYPES.map((t) => <SelectItem key={t} value={t}>{shiftTypeLabel[t]}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label>Staff per shift</Label>
               <Input type="number" min={1} max={10} value={perShift} onChange={(e) => setPerShift(Math.max(1, Number(e.target.value) || 1))} />
+            </div>
+            <div>
+              <Label>Role filter</Label>
+              <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All staff</SelectItem>
+                  <SelectItem value="doctor">Doctors</SelectItem>
+                  <SelectItem value="nurse">Nurses</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -177,14 +210,6 @@ export function AutoScheduleDialog({ defaultStart, defaultEnd, staff, currentUse
             <div className="flex items-center justify-between">
               <Label>Rotation pool</Label>
               <div className="flex items-center gap-2">
-                <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
-                  <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All staff</SelectItem>
-                    <SelectItem value="doctor">Doctors</SelectItem>
-                    <SelectItem value="nurse">Nurses</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setPool(eligible.map((s) => s.id))}>All</Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setPool([])}>None</Button>
               </div>
@@ -199,13 +224,91 @@ export function AutoScheduleDialog({ defaultStart, defaultEnd, staff, currentUse
                 </label>
               ))}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">{selected.length} selected — staff are rotated evenly in order.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{selected.length} selected</p>
           </div>
+
+          {!result && (
+            <Button onClick={generate} disabled={generating} className="w-full">
+              {generating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating…</> : "Generate schedule"}
+            </Button>
+          )}
+
+          {result && (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Generated shifts</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold">{result.shifts.length}</div></CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Fairness score</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{Math.round(100 - result.fairness.stdDeviation * 10)}</div>
+                    <Progress value={Math.max(0, Math.min(100, 100 - result.fairness.stdDeviation * 10))} className="mt-2 h-2" />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Night balance</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold">{result.fairness.nightShiftBalance}%</div></CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Weekend balance</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold">{result.fairness.weekendShiftBalance}%</div></CardContent>
+                </Card>
+              </div>
+
+              {result.violations.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{result.violations.length} rule violation{result.violations.length === 1 ? "" : "s"}</AlertTitle>
+                  <AlertDescription>
+                    <ScrollArea className="max-h-32">
+                      <ul className="space-y-1 text-xs">
+                        {result.violations.slice(0, 10).map((v, i) => (
+                          <li key={i}>{v.staff_name}: {v.message}</li>
+                        ))}
+                      </ul>
+                    </ScrollArea>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {result.uncovered.length > 0 && (
+                <Alert variant="default">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{result.uncovered.length} uncovered slot{result.uncovered.length === 1 ? "" : "s"}</AlertTitle>
+                  <AlertDescription>
+                    <ScrollArea className="max-h-32">
+                      <ul className="space-y-1 text-xs">
+                        {result.uncovered.slice(0, 10).map((u, i) => (
+                          <li key={i}>{u.shift_date} · {u.period} · {shiftTypeLabel[u.type]} — {u.reason}</li>
+                        ))}
+                      </ul>
+                    </ScrollArea>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {result.violations.length === 0 && result.uncovered.length === 0 && (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Schedule looks good</AlertTitle>
+                  <AlertDescription>No rule violations or uncovered slots detected.</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={generate} disabled={saving}>{saving ? "Generating…" : "Generate"}</Button>
+          <Button variant="outline" onClick={cancel}>Cancel</Button>
+          {result ? (
+            <Button onClick={apply} disabled={result.shifts.length === 0}>Apply {result.shifts.length} shifts</Button>
+          ) : (
+            <Button onClick={generate} disabled={generating}>
+              {generating ? "Generating…" : "Generate"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

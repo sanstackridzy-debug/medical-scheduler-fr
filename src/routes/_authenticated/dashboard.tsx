@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
+import { calculateFairness } from "@/lib/scheduling";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfWeek, endOfWeek } from "date-fns";
@@ -146,10 +147,16 @@ function AdminDashboard() {
   const [staffCount, setStaffCount] = useState(0);
   const [pendingAccounts, setPendingAccounts] = useState<any[]>([]);
   const [weekShifts, setWeekShifts] = useState<any[]>([]);
+  const [monthShifts, setMonthShifts] = useState<any[]>([]);
+  const [monthStaff, setMonthStaff] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+
 
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const monthStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const monthEnd = format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+
 
   useEffect(() => {
     supabase
@@ -180,10 +187,22 @@ function AdminDashboard() {
       .then(({ data }) => setPendingAccounts(data ?? []));
     supabase
       .from("shifts")
-      .select("id, period, shift_date")
+      .select("id, staff_id, period, shift_date")
       .gte("shift_date", weekStart)
       .lte("shift_date", weekEnd)
       .then(({ data }) => setWeekShifts(data ?? []));
+    supabase
+      .from("shifts")
+      .select("id, staff_id, period, shift_date")
+      .gte("shift_date", monthStart)
+      .lte("shift_date", monthEnd)
+      .then(({ data }) => setMonthShifts(data ?? []));
+    supabase
+      .from("user_roles")
+      .select("user_id, role, profiles:user_id(id, full_name)")
+      .in("role", ["doctor", "nurse"])
+      .then(({ data }) => setMonthStaff((data ?? []).map((r: any) => ({ id: r.user_id, full_name: r.profiles?.full_name, role: r.role }))));
+
     supabase.auth.getUser().then(({ data }) => {
       const uid = data.user?.id;
       if (!uid) return;
@@ -195,7 +214,8 @@ function AdminDashboard() {
         .limit(4)
         .then(({ data: n }) => setNotes(n ?? []));
     });
-  }, [today, currentPeriod, weekStart, weekEnd]);
+  }, [today, currentPeriod, weekStart, weekEnd, monthStart, monthEnd]);
+
 
   const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
   const coverage = staffCount > 0 ? Math.min(100, (todayShifts.length / staffCount) * 100) : 0;
@@ -235,7 +255,10 @@ function AdminDashboard() {
         <TileStat tone="violet" title="Total Staff" value={staffCount} icon={<Clock className="h-5 w-5" />} hint="doctors + nurses" />
       </div>
 
+      <FairnessWidget shifts={monthShifts} staff={monthStaff} />
+
       <div className="grid gap-4 lg:grid-cols-2">
+
         <Card>
           <CardHeader>
             <CardTitle>Staff on duty now</CardTitle>
@@ -789,3 +812,49 @@ function PatientDashboard({ userId }: { userId: string }) {
     </div>
   );
 }
+
+function FairnessWidget({ shifts, staff }: { shifts: any[]; staff: any[] }) {
+  const fairness = calculateFairness(
+    shifts as any,
+    staff,
+  );
+  const score = Math.max(0, Math.min(100, Math.round(100 - fairness.stdDeviation * 10)));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Smart scheduling fairness</CardTitle>
+        <CardDescription>Workload distribution for the current week</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4 flex items-center gap-4">
+          <div className="text-4xl font-bold">{score}</div>
+          <div className="text-sm text-muted-foreground">Fairness score</div>
+        </div>
+        {staff.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No staff data.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {staff.map((s) => {
+              const count = shifts.filter((x: any) => x.staff_id === s.id).length;
+              const pct = fairness.averageShiftsPerStaff > 0 ? Math.round((count / fairness.averageShiftsPerStaff) * 100) : 0;
+              return (
+                <div key={s.id} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="truncate font-medium">{s.full_name}</span>
+                    <span className="text-muted-foreground">{count} shifts</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, pct)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
