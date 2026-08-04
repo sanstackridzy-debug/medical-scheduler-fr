@@ -2,12 +2,15 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useSession, useMyProfile, type Profile } from "@/lib/auth-hooks";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { calculateFairness } from "@/lib/scheduling";
 import { recommendedStaffing, STAFFING_RATIOS, type InflowRow } from "@/lib/forecasting";
-import { getForecast } from "@/lib/inflow.functions";
+import { getForecast, recordActualInflow } from "@/lib/inflow.functions";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfWeek, endOfWeek } from "date-fns";
@@ -16,6 +19,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
