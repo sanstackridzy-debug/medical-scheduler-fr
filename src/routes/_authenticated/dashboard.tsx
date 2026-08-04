@@ -893,8 +893,9 @@ function DemandForecastWidget({
   onRecord?: (count: number) => void;
 }) {
   const todayRow = inflow.find((r) => r.inflow_date === today);
-  const predicted = todayRow?.predicted_count ?? 0;
-  const recommended = recommendedStaffing(predicted);
+  const todayVal = todayRow?.actual_count ?? todayRow?.predicted_count ?? 0;
+  const recommended = recommendedStaffing(todayVal);
+
   const next7 = inflow.filter((r) => r.inflow_date >= today).slice(0, 7);
   const maxVal = Math.max(1, ...next7.map((r) => Math.max(r.predicted_count, r.actual_count ?? 0)));
   const [recordOpen, setRecordOpen] = useState(false);
