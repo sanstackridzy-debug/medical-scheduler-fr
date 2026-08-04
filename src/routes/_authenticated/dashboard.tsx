@@ -274,7 +274,7 @@ function AdminDashboard() {
       </div>
 
       <FairnessWidget shifts={monthShifts} staff={monthStaff} />
-      <DemandForecastWidget inflow={inflow} today={today} />
+      <DemandForecastWidget inflow={inflow} today={today} onRecord={(count) => saveInflow({ data: { inflowDate: today, count } })} />
 
       <div className="grid gap-4 lg:grid-cols-2">
 
