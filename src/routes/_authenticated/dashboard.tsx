@@ -871,4 +871,69 @@ function FairnessWidget({ shifts, staff }: { shifts: any[]; staff: any[] }) {
   );
 }
 
+function DemandForecastWidget({ inflow, today }: { inflow: InflowRow[]; today: string }) {
+  const todayRow = inflow.find((r) => r.inflow_date === today);
+  const predicted = todayRow?.predicted_count ?? 0;
+  const recommended = recommendedStaffing(predicted);
+  const next7 = inflow.filter((r) => r.inflow_date >= today).slice(0, 7);
+  const maxVal = Math.max(1, ...next7.map((r) => Math.max(r.predicted_count, r.actual_count ?? 0)));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          Demand Forecast
+        </CardTitle>
+        <CardDescription>AI-lite prediction based on historical same-day averages</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">Predicted patients today</div>
+            <div className="text-3xl font-bold">{predicted}</div>
+            <div className="text-xs text-muted-foreground">{todayRow ? "Based on historical patterns" : "No data yet"}</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">Recommended doctors</div>
+            <div className="text-3xl font-bold">{recommended.doctors}</div>
+            <div className="text-xs text-muted-foreground">{STAFFING_RATIOS.patientsPerDoctor}:1 patient ratio</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">Recommended nurses</div>
+            <div className="text-3xl font-bold">{recommended.nurses}</div>
+            <div className="text-xs text-muted-foreground">{STAFFING_RATIOS.patientsPerNurse}:1 patient ratio</div>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-2">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">Next 7 days</div>
+          {next7.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No forecast available.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-7">
+              {next7.map((r) => {
+                const isToday = r.inflow_date === today;
+                const val = r.actual_count ?? r.predicted_count;
+                const pct = (val / maxVal) * 100;
+                return (
+                  <div key={r.inflow_date} className={`rounded-md border p-2 text-center ${isToday ? "border-primary bg-primary/5" : ""}`}>
+                    <div className="text-[10px] text-muted-foreground">{format(r.inflow_date, "EEE")}</div>
+                    <div className="text-lg font-bold">{val}</div>
+                    <div className="mx-auto mt-1 h-1 w-8 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{isToday ? "Today" : format(r.inflow_date, "MMM d")}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 
