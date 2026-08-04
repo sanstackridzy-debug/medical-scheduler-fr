@@ -221,7 +221,12 @@ function AdminDashboard() {
         .limit(4)
         .then(({ data: n }) => setNotes(n ?? []));
     });
+
+    fetchForecast({ data: undefined })
+      .then(({ forecast }) => setInflow(forecast))
+      .catch(() => setInflow([]));
   }, [today, currentPeriod, weekStart, weekEnd, monthStart, monthEnd]);
+
 
 
   const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
