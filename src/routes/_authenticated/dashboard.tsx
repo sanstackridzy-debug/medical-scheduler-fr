@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { calculateFairness } from "@/lib/scheduling";
-import { recommendedStaffing, type InflowRow } from "@/lib/forecasting";
+import { recommendedStaffing, STAFFING_RATIOS, type InflowRow } from "@/lib/forecasting";
 import { getForecast } from "@/lib/inflow.functions";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
