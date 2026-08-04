@@ -877,12 +877,38 @@ function FairnessWidget({ shifts, staff }: { shifts: any[]; staff: any[] }) {
   );
 }
 
-function DemandForecastWidget({ inflow, today }: { inflow: InflowRow[]; today: string }) {
+function DemandForecastWidget({
+  inflow,
+  today,
+  onRecord,
+}: {
+  inflow: InflowRow[];
+  today: string;
+  onRecord?: (count: number) => void;
+}) {
   const todayRow = inflow.find((r) => r.inflow_date === today);
   const predicted = todayRow?.predicted_count ?? 0;
   const recommended = recommendedStaffing(predicted);
   const next7 = inflow.filter((r) => r.inflow_date >= today).slice(0, 7);
   const maxVal = Math.max(1, ...next7.map((r) => Math.max(r.predicted_count, r.actual_count ?? 0)));
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordCount, setRecordCount] = useState(String(todayRow?.actual_count ?? ""));
+  const [saving, setSaving] = useState(false);
+
+  async function submitRecord() {
+    const count = parseInt(recordCount, 10);
+    if (Number.isNaN(count) || count < 0) return toast.error("Enter a valid number");
+    setSaving(true);
+    try {
+      await (onRecord ? Promise.resolve(onRecord(count)) : Promise.resolve());
+      toast.success("Actual inflow recorded");
+      setRecordOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Card>
@@ -913,7 +939,41 @@ function DemandForecastWidget({ inflow, today }: { inflow: InflowRow[]; today: s
         </div>
 
         <div className="mt-6 space-y-2">
-          <div className="text-xs font-semibold uppercase text-muted-foreground">Next 7 days</div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase text-muted-foreground">Next 7 days</div>
+            {onRecord && (
+              <Dialog open={recordOpen} onOpenChange={setRecordOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">Record actual inflow</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Record actual patient inflow</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Date</Label>
+                      <Input value={today} disabled />
+                    </div>
+                    <div>
+                      <Label>Actual patient count</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={recordCount}
+                        onChange={(e) => setRecordCount(e.target.value)}
+                        placeholder="e.g. 52"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setRecordOpen(false)}>Cancel</Button>
+                    <Button onClick={submitRecord} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
           {next7.length === 0 ? (
             <p className="text-sm text-muted-foreground">No forecast available.</p>
           ) : (
@@ -940,6 +1000,7 @@ function DemandForecastWidget({ inflow, today }: { inflow: InflowRow[]; today: s
     </Card>
   );
 }
+
 
 
 
