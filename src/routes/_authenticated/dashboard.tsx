@@ -2,17 +2,25 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useSession, useMyProfile, type Profile } from "@/lib/auth-hooks";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { calculateFairness } from "@/lib/scheduling";
+import { recommendedStaffing, STAFFING_RATIOS, type InflowRow } from "@/lib/forecasting";
+import { getForecast, recordActualInflow } from "@/lib/inflow.functions";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfWeek, endOfWeek } from "date-fns";
-import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock } from "lucide-react";
+import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock, TrendingUp } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -150,6 +158,11 @@ function AdminDashboard() {
   const [monthShifts, setMonthShifts] = useState<any[]>([]);
   const [monthStaff, setMonthStaff] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [inflow, setInflow] = useState<InflowRow[]>([]);
+  const fetchForecast = useServerFn(getForecast);
+  const saveInflow = useServerFn(recordActualInflow);
+
+
 
 
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -214,7 +227,12 @@ function AdminDashboard() {
         .limit(4)
         .then(({ data: n }) => setNotes(n ?? []));
     });
+
+    fetchForecast({ data: undefined })
+      .then(({ forecast }) => setInflow(forecast))
+      .catch(() => setInflow([]));
   }, [today, currentPeriod, weekStart, weekEnd, monthStart, monthEnd]);
+
 
 
   const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
@@ -256,8 +274,16 @@ function AdminDashboard() {
       </div>
 
       <FairnessWidget shifts={monthShifts} staff={monthStaff} />
+      <DemandForecastWidget inflow={inflow} today={today} onRecord={async (count) => {
+        await saveInflow({ data: { date: today, actualCount: count } });
+        const fresh = await fetchForecast();
+        setInflow(fresh.forecast);
+      }} />
+
+
 
       <div className="grid gap-4 lg:grid-cols-2">
+
 
         <Card>
           <CardHeader>
@@ -856,5 +882,136 @@ function FairnessWidget({ shifts, staff }: { shifts: any[]; staff: any[] }) {
     </Card>
   );
 }
+
+function DemandForecastWidget({
+  inflow,
+  today,
+  onRecord,
+}: {
+  inflow: InflowRow[];
+  today: string;
+  onRecord?: (count: number) => void;
+}) {
+  const todayRow = inflow.find((r) => r.inflow_date === today);
+  const todayVal = todayRow?.actual_count ?? todayRow?.predicted_count ?? 0;
+  const recommended = recommendedStaffing(todayVal);
+
+  const next7 = inflow.filter((r) => r.inflow_date >= today).slice(0, 7);
+  const maxVal = Math.max(1, ...next7.map((r) => Math.max(r.predicted_count, r.actual_count ?? 0)));
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordCount, setRecordCount] = useState(String(todayRow?.actual_count ?? ""));
+  const [saving, setSaving] = useState(false);
+
+  async function submitRecord() {
+    const count = parseInt(recordCount, 10);
+    if (Number.isNaN(count) || count < 0) return toast.error("Enter a valid number");
+    if (!onRecord) return;
+    setSaving(true);
+    try {
+      await onRecord(count);
+      toast.success("Actual inflow recorded");
+      setRecordOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          Demand Forecast
+        </CardTitle>
+        <CardDescription>AI-lite prediction based on historical same-day averages</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">{todayRow?.actual_count != null ? "Actual patients today" : "Predicted patients today"}</div>
+            <div className="text-3xl font-bold">{todayVal}</div>
+            <div className="text-xs text-muted-foreground">{todayRow ? "Based on historical patterns" : "No data yet"}</div>
+          </div>
+
+
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">Recommended doctors</div>
+            <div className="text-3xl font-bold">{recommended.doctors}</div>
+            <div className="text-xs text-muted-foreground">{STAFFING_RATIOS.patientsPerDoctor}:1 patient ratio</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-xs text-muted-foreground">Recommended nurses</div>
+            <div className="text-3xl font-bold">{recommended.nurses}</div>
+            <div className="text-xs text-muted-foreground">{STAFFING_RATIOS.patientsPerNurse}:1 patient ratio</div>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase text-muted-foreground">Next 7 days</div>
+            {onRecord && (
+              <Dialog open={recordOpen} onOpenChange={setRecordOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">Record actual inflow</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Record actual patient inflow</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Date</Label>
+                      <Input value={today} disabled />
+                    </div>
+                    <div>
+                      <Label>Actual patient count</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={recordCount}
+                        onChange={(e) => setRecordCount(e.target.value)}
+                        placeholder="e.g. 52"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setRecordOpen(false)}>Cancel</Button>
+                    <Button onClick={submitRecord} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+          {next7.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No forecast available.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-7">
+              {next7.map((r) => {
+                const isToday = r.inflow_date === today;
+                const val = r.actual_count ?? r.predicted_count;
+                const pct = (val / maxVal) * 100;
+                return (
+                  <div key={r.inflow_date} className={`rounded-md border p-2 text-center ${isToday ? "border-primary bg-primary/5" : ""}`}>
+                    <div className="text-[10px] text-muted-foreground">{format(r.inflow_date, "EEE")}</div>
+                    <div className="text-lg font-bold">{val}</div>
+                    <div className="mx-auto mt-1 h-1 w-8 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{isToday ? "Today" : format(r.inflow_date, "MMM d")}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 
 

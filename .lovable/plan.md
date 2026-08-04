@@ -1,72 +1,42 @@
-# MediRoster Differentiation Plan
+# MediRoster Differentiation Roadmap
 
-## Goal
-Transform MediRoster from a standard hospital duty-roster system into a next-generation healthcare workforce platform that no existing competitor offers in a single, integrated package.
+## What makes it different from existing systems
+Most hospital scheduling tools are just calendars with approval chains. MediRoster becomes a **predictive workforce co-pilot** by combining:
 
-## What makes this different
+1. **Fairness-aware auto-scheduling** (already built) — assigns shifts based on workload balance, skills, and fatigue rules rather than manual rotation.
+2. **Demand forecasting** (already built) — predicts patient inflow from historical patterns and recommends doctor/nurse ratios.
+3. **Ward capacity tracking** — links live bed occupancy to staffing needs.
+4. **Burnout prevention** — fatigue scoring, rest-period enforcement, and automated shift caps.
+5. **Staff marketplace** — lets staff trade shifts within rules, reducing admin workload.
+6. **AI voice/SMS assistant** — shift reminders, emergency broadcasts, and natural-language schedule queries.
+7. **Compliance reporting** — audit trails, CPD tracking, and payroll-ready exports.
 
-### Phase 1 — Smart Scheduling Engine (in progress)
-A fairness-aware, rule-based scheduler that generates duty rosters in seconds while respecting skills, availability, fatigue rules, and workload balance.
+## Completed
+- Phase 1: Smart Scheduling — fairness scoring, skills-based assignment, auto-generation.
+- Phase 2: Predictive Inflow — AI-lite demand forecast, recommended staffing, actual-inflow recording.
 
-**Features to add / complete**
-- [x] Core scheduling engine with scoring, fairness metrics, and rule violation detection
-- [x] Skills & skill requirements management
-- [x] Staff availability calendar
-- [ ] Complete the dashboard fairness widget
-- [ ] Seed or default sample staff skills so the auto-scheduler produces real shifts out of the box
-- [ ] Skill-based visual conflict indicators in the roster
-- [ ] One-click "rebalance" button that re-optimizes a selected week for fairness
-- [ ] Shift coverage heatmap (red/yellow/green by day/period)
+## Phase 3: Live Ward Capacity Tracker
+- Add a `beds`/`wards` table with occupancy, acuity, and isolation flags.
+- Admin dashboard shows a color-coded ward map: available, occupied, cleaning, high-acuity.
+- Update the Demand Forecast widget to factor in bed occupancy, not just historical inflow.
+- Add alerts when a ward is over capacity or understaffed for its acuity mix.
 
-### Phase 2 — AI-Powered Operational Intelligence
-Use internal data and optional external signals to predict demand before it happens.
+## Phase 4: Burnout Prevention & Staff Marketplace
+- Build a fatigue score per staff member from consecutive shifts, night shifts, and total hours.
+- Add shift caps and minimum rest-period rules (e.g., 11 hours between shifts).
+- Create a swap marketplace where doctors/nurses can offer swaps; the system auto-checks skills and rest rules before admin approval.
+- Admin dashboard highlights high-risk staff and blocks unsafe assignments.
 
-**Features to add**
-- Patient inflow predictor: estimate daily/period patient arrivals based on historical appointments, day-of-week, season, and nearby public events
-- Auto-suggested staffing: recommend how many doctors/nurses per shift based on predicted demand
-- Bed/ward capacity widget: show current occupancy and projected bottlenecks
-- Wait-time estimator: live estimated wait time for OPD/ER appointments
+## Phase 5: AI Voice & SMS Assistant
+- Add an integration for SMS/WhatsApp reminders (Twilio/Vonage) for upcoming shifts and appointments.
+- Allow emergency broadcast from the admin dashboard ("All ER staff report immediately").
+- Add a simple chat/widget for natural-language queries: "Who is on duty tonight in Surgery?"
 
-### Phase 3 — Staff-Centric Experience
-Make the system feel like it works *for* staff, not just managers.
+## Phase 6: Compliance & Accreditation Reports
+- Audit trail for every shift change, swap, and approval.
+- Weekly/monthly working-hours reports per staff member.
+- CPD and skill-expiry tracking.
+- Export to CSV/PDF for HR and payroll systems.
 
-**Features to add**
-- Voice-activated shift swap requests (record reason and proposed swap via voice)
-- Mobile PWA with push notifications for shift reminders, swap approvals, and fatigue alerts
-- Burnout/wellness score: track consecutive nights, long stretches, and weekend coverage per staff
-- Automatic fatigue break suggestions after consecutive heavy weeks
-- Staff preference learning: system learns preferred shifts over time and weights them
-- Instant shift-swap marketplace: staff can post shifts for swap; others pick up; admin just approves
-
-### Phase 4 — Patient & Care Coordination Features
-Bridge the gap between rostering and actual patient care.
-
-**Features to add**
-- Doctor on-duty status for patient booking (already started)
-- QR code check-in at wards/OPD so patients confirm arrival and staff can see live queue
-- Family/caregiver appointment updates via WhatsApp/SMS/email
-- Telemedicine link auto-generation for remote appointments
-- Post-appointment follow-up scheduling tied to the same doctor
-
-### Phase 5 — Ecosystem & Integrations
-Connect the platform to the broader hospital and financial system.
-
-**Features to add**
-- Payroll integration: export approved shifts/hours to payroll CSV/API
-- HRIS sync for staff master data, onboarding, and offboarding
-- IoT/device integration: badge-swipe attendance, bed sensors, smart lockers
-- Open API for third-party apps (lab, pharmacy, radiology) to read on-duty staff
-- Compliance & audit logs: export schedule history for accreditation
-
-## Suggested priority order
-
-1. Finish Phase 1 fairness widget and sample skill data
-2. Add a patient wait-time predictor (Phase 2) — high visible value, low data needs
-3. Add burnout/wellness tracking (Phase 3) — strong staff-retention story
-4. Add QR check-in (Phase 4) — improves patient flow and reduces front-desk load
-5. Add payroll export (Phase 5) — makes the system financially relevant
-
-## Technical notes
-- All new features should reuse the existing Supabase/Lovable Cloud backend
-- Prefer `createServerFn` for app logic; use `src/routes/api/public/*` only for external webhooks
-- Keep the UI within the existing medical design system (blue/teal tones, card-based layout)
+## Recommended next step
+Implement **Phase 3: Live Ward Capacity Tracker** because it directly builds on the demand forecast already in the dashboard and gives admins a real-time operational view that most scheduling systems lack.
