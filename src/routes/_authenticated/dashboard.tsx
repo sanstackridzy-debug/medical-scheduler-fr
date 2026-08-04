@@ -154,6 +154,9 @@ function AdminDashboard() {
   const [monthShifts, setMonthShifts] = useState<any[]>([]);
   const [monthStaff, setMonthStaff] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [inflow, setInflow] = useState<InflowRow[]>([]);
+  const fetchForecast = useServerFn(getForecast);
+
 
 
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
