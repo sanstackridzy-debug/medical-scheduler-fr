@@ -931,10 +931,11 @@ function DemandForecastWidget({
       <CardContent>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-lg border p-4">
-            <div className="text-xs text-muted-foreground">Predicted patients today</div>
+            <div className="text-xs text-muted-foreground">{todayRow?.actual_count != null ? "Actual patients today" : "Predicted patients today"}</div>
             <div className="text-3xl font-bold">{todayVal}</div>
             <div className="text-xs text-muted-foreground">{todayRow ? "Based on historical patterns" : "No data yet"}</div>
           </div>
+
 
           <div className="rounded-lg border p-4">
             <div className="text-xs text-muted-foreground">Recommended doctors</div>
