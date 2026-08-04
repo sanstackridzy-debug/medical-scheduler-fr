@@ -136,6 +136,39 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_inflow: {
+        Row: {
+          actual_count: number | null
+          created_at: string
+          id: string
+          inflow_date: string
+          notes: string | null
+          predicted_count: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          actual_count?: number | null
+          created_at?: string
+          id?: string
+          inflow_date: string
+          notes?: string | null
+          predicted_count?: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_count?: number | null
+          created_at?: string
+          id?: string
+          inflow_date?: string
+          notes?: string | null
+          predicted_count?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
