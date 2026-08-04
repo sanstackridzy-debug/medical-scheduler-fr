@@ -6,13 +6,17 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { shiftTypeLabel, shiftPeriodShort, periodHours, type ShiftPeriod, type ShiftType } from "@/lib/shift-utils";
 import { calculateFairness } from "@/lib/scheduling";
+import { recommendedStaffing, type InflowRow } from "@/lib/forecasting";
+import { getForecast } from "@/lib/inflow.functions";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfWeek, endOfWeek } from "date-fns";
-import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock } from "lucide-react";
+import { Users, Calendar as CalIcon, ClipboardList, Clock, CalendarClock, TrendingUp } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
