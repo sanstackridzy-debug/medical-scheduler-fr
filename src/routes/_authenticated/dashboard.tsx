@@ -275,10 +275,11 @@ function AdminDashboard() {
 
       <FairnessWidget shifts={monthShifts} staff={monthStaff} />
       <DemandForecastWidget inflow={inflow} today={today} onRecord={async (count) => {
-        await saveInflow({ data: { inflowDate: today, count } });
-        const fresh = await fetchForecast({ data: { days: 14 } });
-        setInflow(fresh);
+        await saveInflow({ data: { date: today, actualCount: count } });
+        const fresh = await fetchForecast();
+        setInflow(fresh.forecast);
       }} />
+
 
 
       <div className="grid gap-4 lg:grid-cols-2">
