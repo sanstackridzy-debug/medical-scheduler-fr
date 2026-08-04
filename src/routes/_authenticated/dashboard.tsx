@@ -904,9 +904,10 @@ function DemandForecastWidget({
   async function submitRecord() {
     const count = parseInt(recordCount, 10);
     if (Number.isNaN(count) || count < 0) return toast.error("Enter a valid number");
+    if (!onRecord) return;
     setSaving(true);
     try {
-      await (onRecord ? Promise.resolve(onRecord(count)) : Promise.resolve());
+      await onRecord(count);
       toast.success("Actual inflow recorded");
       setRecordOpen(false);
     } catch (e: any) {
@@ -915,6 +916,7 @@ function DemandForecastWidget({
       setSaving(false);
     }
   }
+
 
   return (
     <Card>
