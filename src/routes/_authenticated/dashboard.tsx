@@ -160,6 +160,8 @@ function AdminDashboard() {
   const [notes, setNotes] = useState<any[]>([]);
   const [inflow, setInflow] = useState<InflowRow[]>([]);
   const fetchForecast = useServerFn(getForecast);
+  const saveInflow = useServerFn(recordActualInflow);
+
 
 
 
