@@ -22,6 +22,7 @@ import { Route as AuthenticatedDepartmentsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBookRouteImport } from './routes/_authenticated/book'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -90,6 +91,11 @@ const AuthenticatedAppointmentsRoute =
     path: '/appointments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/roster': typeof AuthenticatedRosterRoute
   '/skills': typeof AuthenticatedSkillsRoute
   '/staff': typeof AuthenticatedStaffRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/roster': typeof AuthenticatedRosterRoute
   '/skills': typeof AuthenticatedSkillsRoute
   '/staff': typeof AuthenticatedStaffRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated/roster': typeof AuthenticatedRosterRoute
   '/_authenticated/skills': typeof AuthenticatedSkillsRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/roster'
     | '/skills'
     | '/staff'
+    | '/.lovable/oauth/consent'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/roster'
     | '/skills'
     | '/staff'
+    | '/.lovable/oauth/consent'
   id:
     | '__root__'
     | '/'
@@ -179,12 +190,14 @@ export interface FileRouteTypes {
     | '/_authenticated/roster'
     | '/_authenticated/skills'
     | '/_authenticated/staff'
+    | '/.lovable/oauth/consent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppointmentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
