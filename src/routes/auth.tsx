@@ -69,7 +69,7 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Signed in");
-    navigate({ to: "/dashboard" });
+    goNext();
   }
 
   async function signUpPatient(e: React.FormEvent<HTMLFormElement>) {
