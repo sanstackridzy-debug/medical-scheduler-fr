@@ -91,7 +91,7 @@ function AuthPage() {
       email: String(fd.get("email")),
       password: String(fd.get("password")),
     });
-    navigate({ to: "/dashboard" });
+    goNext();
   }
 
   async function signUpStaff(e: React.FormEvent<HTMLFormElement>) {
