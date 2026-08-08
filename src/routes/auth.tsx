@@ -12,6 +12,11 @@ import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s['next'] === "string" && s['next'].startsWith("/") && !s['next'].startsWith("//")
+      ? s['next']
+      : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Sign in — MediRoster" },
@@ -25,20 +30,33 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [staffRole, setStaffRole] = useState<"doctor" | "nurse">("doctor");
   const [specialtyId, setSpecialtyId] = useState<string>("");
   const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
   const [showStaffPassword, setShowStaffPassword] = useState(false);
 
+  function goNext() {
+    if (next) {
+      window.location.href = next;
+      return;
+    }
+    navigate({ to: "/dashboard" });
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) {
+        if (next) window.location.href = next;
+        else navigate({ to: "/dashboard" });
+      }
     });
     supabase.from("specialties").select("id, name").order("name").then(({ data }) => {
       setSpecialties(data ?? []);
     });
-  }, [navigate]);
+  }, [navigate, next]);
+
 
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
