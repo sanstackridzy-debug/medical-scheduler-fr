@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://mczvascbtpobpjjlingz.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "dutyflow-health",
+      "version": "0.1.0",
+      "title": "DutyFlow Health"
+    },
+    "tools": [
+      {
+        "name": "list_my_shifts",
+        "title": "List my shifts",
+        "description": "List the signed-in staff member's rostered shifts within a date range.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "Start date (YYYY-MM-DD), inclusive."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "End date (YYYY-MM-DD), inclusive."
+            }
+          },
+          "required": [
+            "start_date",
+            "end_date"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_appointments",
+        "title": "List my appointments",
+        "description": "List appointments visible to the signed-in user (their own as patient, or assigned to them as doctor) within a date range.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "Start date (YYYY-MM-DD), inclusive."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "End date (YYYY-MM-DD), inclusive."
+            }
+          },
+          "required": [
+            "start_date",
+            "end_date"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_requests",
+        "title": "List my requests",
+        "description": "List leave and shift-swap requests submitted by the signed-in staff member.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Optional status filter.",
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "submit_leave_request",
+        "title": "Submit leave request",
+        "description": "Submit a leave request for the signed-in staff member. It is created as pending and must be approved by an admin.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "leave_start": {
+              "type": "string",
+              "description": "First day of leave (YYYY-MM-DD)."
+            },
+            "leave_end": {
+              "type": "string",
+              "description": "Last day of leave (YYYY-MM-DD)."
+            },
+            "reason": {
+              "description": "Optional reason for the leave.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "leave_start",
+            "leave_end"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
