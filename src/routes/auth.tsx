@@ -81,7 +81,7 @@ function AuthPage() {
       password: String(fd.get("password")),
       options: {
         data: { full_name: String(fd.get("full_name")) },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: next ? `${window.location.origin}${next}` : window.location.origin,
       },
     });
     setLoading(false);
