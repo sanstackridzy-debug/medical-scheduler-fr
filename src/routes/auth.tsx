@@ -96,8 +96,9 @@ function AuthPage() {
 
   async function signUpStaff(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setLoading(true);
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(form);
     const { error } = await supabase.auth.signUp({
       email: String(fd.get("email")),
       password: String(fd.get("password")),
@@ -113,8 +114,9 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Request submitted — an admin will review your account");
-    (e.currentTarget as HTMLFormElement).reset();
+    form.reset();
   }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary via-background to-accent px-4 py-12">
