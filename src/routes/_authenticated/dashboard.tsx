@@ -233,6 +233,18 @@ function AdminDashboard() {
       .catch(() => setInflow([]));
   }, [today, currentPeriod, weekStart, weekEnd, monthStart, monthEnd]);
 
+  async function decideAccount(id: string, approve: boolean) {
+    const { error } = await supabase.rpc(
+      approve ? "approve_staff_account" : "reject_staff_account",
+      { _user_id: id },
+    );
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(approve ? "Account approved" : "Account rejected");
+    setPendingAccounts((prev) => prev.filter((p: any) => p.id !== id));
+  }
 
 
   const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
