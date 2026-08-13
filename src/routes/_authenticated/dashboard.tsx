@@ -233,6 +233,18 @@ function AdminDashboard() {
       .catch(() => setInflow([]));
   }, [today, currentPeriod, weekStart, weekEnd, monthStart, monthEnd]);
 
+  async function decideAccount(id: string, approve: boolean) {
+    const { error } = await supabase.rpc(
+      approve ? "approve_staff_account" : "reject_staff_account",
+      { _user_id: id },
+    );
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(approve ? "Account approved" : "Account rejected");
+    setPendingAccounts((prev) => prev.filter((p: any) => p.id !== id));
+  }
 
 
   const nightShifts = weekShifts.filter((s: any) => s.period === "night").length;
@@ -405,12 +417,17 @@ function AdminDashboard() {
             ) : (
               <ul className="space-y-2">
                 {pendingAccounts.map((p: any) => (
-                  <li key={p.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                  <li key={p.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
                     <span className="truncate font-medium">{p.full_name ?? "—"}</span>
-                    <Badge variant="secondary" className="capitalize">{p.requested_role ?? "staff"}</Badge>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Badge variant="secondary" className="capitalize">{p.requested_role ?? "staff"}</Badge>
+                      <Button size="sm" variant="default" className="h-7 px-2" onClick={() => decideAccount(p.id, true)}>Approve</Button>
+                      <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => decideAccount(p.id, false)}>Reject</Button>
+                    </div>
                   </li>
                 ))}
               </ul>
+
             )}
           </CardContent>
         </Card>
