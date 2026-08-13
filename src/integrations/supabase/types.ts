@@ -213,6 +213,56 @@ export type Database = {
           },
         ]
       }
+      queue_tickets: {
+        Row: {
+          called_at: string | null
+          created_at: string
+          doctor_id: string | null
+          id: string
+          patient_id: string
+          queue_date: string
+          reason: string | null
+          served_at: string | null
+          status: string
+          ticket_number: number
+          updated_at: string
+        }
+        Insert: {
+          called_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_id: string
+          queue_date?: string
+          reason?: string | null
+          served_at?: string | null
+          status?: string
+          ticket_number: number
+          updated_at?: string
+        }
+        Update: {
+          called_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string
+          queue_date?: string
+          reason?: string | null
+          served_at?: string | null
+          status?: string
+          ticket_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_tickets_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requests: {
         Row: {
           created_at: string
@@ -502,6 +552,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_queue: {
+        Args: { _doctor_id?: string; _reason?: string }
+        Returns: {
+          called_at: string | null
+          created_at: string
+          doctor_id: string | null
+          id: string
+          patient_id: string
+          queue_date: string
+          reason: string | null
+          served_at: string | null
+          status: string
+          ticket_number: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "queue_tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       list_doctors: {
         Args: never
