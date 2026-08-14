@@ -104,8 +104,8 @@ function QueuePage() {
   async function joinQueue() {
     setBusy(true);
     const { error } = await supabase.rpc("join_queue", {
-      _doctor_id: null,
-      _reason: reason.trim() || null,
+      _doctor_id: undefined,
+      _reason: reason.trim() || undefined,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -115,7 +115,7 @@ function QueuePage() {
   }
 
   async function setStatus(id: string, status: string) {
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: string; called_at?: string; served_at?: string } = { status };
     if (status === "called") patch.called_at = new Date().toISOString();
     if (status === "done") patch.served_at = new Date().toISOString();
     const { error } = await supabase.from("queue_tickets").update(patch).eq("id", id);
