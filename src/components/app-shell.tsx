@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAvatarUrl, initialsOf } from "@/lib/avatar";
-import { LogOut, UserCircle, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock, Building2, Wrench, Award } from "lucide-react";
+import { LogOut, UserCircle, Calendar, Users, ClipboardList, LayoutDashboard, Bell, Stethoscope, CalendarClock, Building2, Wrench, Award, QrCode } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
