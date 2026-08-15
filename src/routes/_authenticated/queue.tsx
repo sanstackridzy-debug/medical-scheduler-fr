@@ -208,6 +208,27 @@ function QueuePage() {
                       </Button>
                     </div>
                   )}
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Waiting list ({active.length})</p>
+                    <div className="divide-y rounded-lg border">
+                      {active.length === 0 && (
+                        <p className="p-6 text-center text-sm text-muted-foreground">No one in the queue right now.</p>
+                      )}
+                      {active.map((t, i) => (
+                        <div
+                          key={t.id}
+                          className={`flex items-center gap-3 p-3 ${t.patient_id === user!.id ? "bg-accent/50" : ""}`}
+                        >
+                          <span className="w-6 text-xs text-muted-foreground">{i + 1}</span>
+                          <span className="w-14 text-base font-semibold">#{t.ticket_number}</span>
+                          <span className="flex-1 text-sm">
+                            {t.patient_id === user!.id ? "You" : `Patient #${t.ticket_number}`}
+                          </span>
+                          <Badge variant="outline" className={statusTone[t.status]}>{t.status}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
 
